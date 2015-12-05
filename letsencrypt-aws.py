@@ -57,6 +57,7 @@ def update_elb(elb_client, iam_client, elb_name, elb_port, hosts):
     )
     csr = generate_csr(private_key, hosts)
 
+    # TODO:
     # 1) Make a request to Lets Encrypt
     # 2) Add record to Route53
     # 3) Do whatever else needs to happen with Lets Encrypt to
