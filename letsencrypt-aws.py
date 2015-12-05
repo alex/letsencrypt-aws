@@ -19,8 +19,10 @@ CERTIFICATE_EXPIRATION_THRESHOLD = datetime.timedelta(days=45)
 
 def generate_csr(private_key, hosts):
     csr_builder = x509.CertificateSigningRequestBuilder().subject_name(
-        # TODO
-        x509.Name([])
+        # This is the same thing the official letsencrypt client does.
+        x509.Name([
+            x509.NameAttribute(x509.NameOID.COMMON_NAME, hosts[0]),
+        ])
     ).add_extension(
         x509.SubjectAlternativeName([
             x509.DNSName(host)
