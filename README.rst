@@ -44,3 +44,6 @@ environment variables. This should be a JSON object with the following schema:
     }
 
 Then you can simply run it: ``python letsencrypt-aws.py``.
+
+If you add the ``--persistent`` flag it will run forever, rather than just
+once. This is useful for production environments.

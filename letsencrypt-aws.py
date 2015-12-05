@@ -4,6 +4,8 @@ import os
 import time
 import uuid
 
+import click
+
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -88,7 +90,22 @@ def update_elb(elb_client, iam_client, elb_name, elb_port, hosts):
     # TODO: Delete the old certificate?
 
 
-def main():
+def update_elbs(elb_client, iam_client, domains):
+    for domain in domains:
+        update_elb(
+            elb_client,
+            iam_client,
+            domain["elb"]["name"],
+            domain["elb"]["port"],
+            domain["hosts"]
+        )
+
+
+@click.command()
+@click.option(
+    "--persistent", is_flag=True, help="Runs in a loop, instead of just once."
+)
+def main(persistent=False):
     session = boto3.Session()
     elb_client = session.client("elb")
     iam_client = session.client("iam")
@@ -98,17 +115,13 @@ def main():
     #     ]
     # }
     domains = json.loads(os.environ["LETSENCRYPT_AWS_CONFIG"])
-    while True:
-        for domain in domains:
-            update_elb(
-                elb_client,
-                iam_client,
-                domain["elb"]["name"],
-                domain["elb"]["port"],
-                domain["hosts"]
-            )
-        # Sleep a day before we check again
-        time.sleep(60 * 60 * 24)
+    if persistent:
+        while True:
+            update_elbs(elb_client, iam_client, domains)
+            # Sleep a day before we check again
+            time.sleep(60 * 60 * 24)
+    else:
+        update_elbs(elb_client, iam_client, domains)
 
 
 if __name__ == "__main__":
