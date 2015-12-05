@@ -89,8 +89,9 @@ def update_elb(elb_client, iam_client, elb_name, elb_port, hosts):
 
 
 def main():
-    elb_client = boto3.client("elb")
-    iam_client = boto3.client("iam")
+    session = boto3.Session()
+    elb_client = session.client("elb")
+    iam_client = session.client("iam")
     # Structure: {
     #     "domains": [
     #         {"elb": {"name" "...", "port" 443}, hosts: ["..."]}
