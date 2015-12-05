@@ -22,3 +22,25 @@ your ELB to use the certificate.
 
 In theory all you need to do is make sure this is running somewhere, and your
 ELBs' certificates will be kept minty fresh.
+
+How to run it
+-------------
+
+``letsencrypt-aws`` takes it's configuration via the ``LETSENCRYPT_AWS_CONFIG``
+environment variables. This should be a JSON object with the following schema:
+
+.. code-block:: json
+
+    {
+        "domains": [
+            {
+                "elb": {
+                    "name": "ELB name",
+                    "port": 443
+                },
+                "hosts": ["..."]
+            }
+        ]
+    }
+
+Then you can simply run it: ``python letsencrypt-aws.py``.
