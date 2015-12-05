@@ -89,13 +89,21 @@ def update_elb(elb_client, iam_client, elb_name, elb_port, hosts):
 def main():
     elb_client = boto3.client("elb")
     iam_client = boto3.client("iam")
-    # TODO: read these from somewhere, probably environ for easy ECS
-    # integration
-    # Structure: [(ELB name, ELB port, [hosts])]
-    domains = []
+    # Structure: {
+    #     "domains": [
+    #         {"elb": {"name" "...", "port" 443}, hosts: ["..."]}
+    #     ]
+    # }
+    domains = json.loads(os.environ["LETSENCRYPT_AWS_CONFIG"])
     while True:
-        for elb_name, elb_port, hosts in domains:
-            update_elb(elb_client, iam_client, elb_name, elb_port, hosts)
+        for domain in domains:
+            update_elb(
+                elb_client,
+                iam_client,
+                domain["elb"]["name"],
+                domain["elb"]["port"],
+                domain["hosts"]
+            )
         # Sleep a day before we check again
         time.sleep(60 * 60 * 24)
 
