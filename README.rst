@@ -1,7 +1,8 @@
 letsencrypt-aws
 ===============
 
-**This is currently in development. It doesn't work.**
+**This is currently in development. It doesn't work. It will not be possible
+until Lets Encrypt officially launches DNS challenges.**
 
 This will eventually be a program that can be run in the background which
 automatically provisions and updates certificates on your AWS infrastructure.
