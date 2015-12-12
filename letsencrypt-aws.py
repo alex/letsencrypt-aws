@@ -56,7 +56,7 @@ def wait_for_route53_change(route53_client, change_id):
         response = route53_client.get_change(Id=change_id)
         if response["ChangeInfo"]["Status"] == "INSYNC":
             return
-        # TODO: sleep
+        time.sleep(10)
 
 
 def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
@@ -123,6 +123,8 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
             }
         )
         if response["ChangeInfo"]["Status"] != "INSYNC":
+            # TODO: reorganize this code so that we can create all the changes
+            # and then wait for them all, instead of serializing.
             wait_for_route53_change(
                 route53_client, response["ChangeInfo"]["Id"]
             )
