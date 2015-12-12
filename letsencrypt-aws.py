@@ -51,6 +51,10 @@ def find_dns_challenge(authz):
             yield authz.body.challenges[combo[0]]
 
 
+def find_zone_id_for_domain(route53_client, domain):
+    # TODO: implement
+
+
 def wait_for_route53_change(route53_client, change_id):
     while True:
         response = route53_client.get_change(Id=change_id)
@@ -104,8 +108,7 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
         validation = dns_challenge.gen_validation()
 
         response = route53_client.change_resource_record_sets(
-            # TODO: query route53 to get the HostedZoneId
-            HostedZoneId='...',
+            HostedZoneId=find_zone_id_for_domain(route53_client, host),
             ChangeBatch={
                 "Changes": [
                     {
