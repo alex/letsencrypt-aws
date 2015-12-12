@@ -4,6 +4,7 @@ import os
 import time
 import uuid
 
+import acme.challenges
 import acme.client
 import acme.jose
 
@@ -15,6 +16,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 import boto3
+
+import OpenSSL.crypto
 
 import rfc3986
 
@@ -37,6 +40,15 @@ def generate_csr(private_key, hosts):
         critical=True
     )
     return csr_builder.sign(private_key, hashes.SHA256(), default_backend())
+
+
+def find_dns_challenge(authz):
+    for combo in authz.body.combinations:
+        if (
+            len(combo) == 1 and
+            isinstance(authz.body.challenges[combo[0]], acme.challenges.DNS)
+        ):
+            yield authz.body.challenges[combo[0]]
 
 
 def update_elb(acme_client, elb_client, iam_client, elb_name, elb_port, hosts):
@@ -69,12 +81,42 @@ def update_elb(acme_client, elb_client, iam_client, elb_name, elb_port, hosts):
     )
     csr = generate_csr(private_key, hosts)
 
-    # TODO:
-    # 1) Make a request to Lets Encrypt
-    # 2) Add record to Route53
-    # 3) Do whatever else needs to happen with Lets Encrypt to
-    #    acquire certificate
-    # 4) Delete the Route53 record
+    authorizations = [
+        (
+            host,
+            acme_client.request_domain_challenges(
+                host, new_authz_uri=acme_client.directory.new_authz
+            )
+        )
+        for host in hosts
+    ]
+    for host, authz in authorizations:
+        [dns_challenge] = find_dns_challenge(authz)
+        validation = dns_challenge.gen_validation()
+        response = dns_challenge.gen_response()
+        # TODO: put this validation in Route53...
+        acme_client.answer_challenge(dns_challenge, response)
+
+    cert_response, _ = acme_client.poll_and_request_issuance(
+        acme.jose.util.ComparableX509(
+            OpenSSL.crypto.load_certificate_request(
+                OpenSSL.crypto.FILETYPE_ASN1,
+                csr.public_bytes(serialization.Encoding.DER),
+            )
+        ),
+        authzrs=[authz for _, authz in authorizations]
+    )
+    pem_certificate = OpenSSL.crypto.dump_privatekey(
+        OpenSSL.crypto.FILETYPE_PEM, cert_response.body
+    )
+    pem_certificate_chain = "\n".join(
+        OpenSSL.crypto.dump_privatekey(
+            OpenSSL.crypto.FILETYPE_PEM,
+            cert
+        )
+        for cert in acme_client.fetch_chain(cert_response)
+    )
+    # TODO: delete Route53 records
 
     response = iam_client.upload_server_certificate(
         # TODO: is there some naming convention we should use?
