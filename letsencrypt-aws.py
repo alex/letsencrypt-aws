@@ -106,7 +106,7 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
     ]
     for host, authz in authorizations:
         [dns_challenge] = find_dns_challenge(authz)
-        validation = dns_challenge.gen_validation()
+        validation = dns_challenge.gen_validation(client.key)
 
         response = route53_client.change_resource_record_sets(
             HostedZoneId=find_zone_id_for_domain(route53_client, host),
