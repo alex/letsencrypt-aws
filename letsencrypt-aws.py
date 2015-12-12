@@ -51,7 +51,16 @@ def find_dns_challenge(authz):
             yield authz.body.challenges[combo[0]]
 
 
-def update_elb(acme_client, elb_client, iam_client, elb_name, elb_port, hosts):
+def wait_for_route53_change(route53_client, change_id):
+    while True:
+        response = route53_client.get_change(Id=change_id)
+        if response["ChangeInfo"]["Status"] == "INSYNC":
+            return
+        # TODO: sleep
+
+
+def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
+               elb_port, hosts):
     response = elb_client.describe_load_balancers(
         LoadBalancerNames=[elb_name]
     )
@@ -93,8 +102,32 @@ def update_elb(acme_client, elb_client, iam_client, elb_name, elb_port, hosts):
     for host, authz in authorizations:
         [dns_challenge] = find_dns_challenge(authz)
         validation = dns_challenge.gen_validation()
+
+        response = route53_client.change_resource_record_sets(
+            # TODO: query route53 to get the HostedZoneId
+            HostedZoneId='...',
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "CREATE",
+                        "ResourceRecordSet": {
+                            "Name": dns_challenge.validation_domain_name(host),
+                            "Type": "TXT",
+                            "ResourceRecords": [
+                                # TODO: is this serialized correctly?
+                                {"Value": validation}
+                            ]
+                        }
+                    }
+                ]
+            }
+        )
+        if response["ChangeInfo"]["Status"] != "INSYNC":
+            wait_for_route53_change(
+                route53_client, response["ChangeInfo"]["Id"]
+            )
+
         response = dns_challenge.gen_response()
-        # TODO: put this validation in Route53...
         acme_client.answer_challenge(dns_challenge, response)
 
     cert_response, _ = acme_client.poll_and_request_issuance(
@@ -140,11 +173,12 @@ def update_elb(acme_client, elb_client, iam_client, elb_name, elb_port, hosts):
     # TODO: Delete the old certificate?
 
 
-def update_elbs(acme_client, elb_client, iam_client, domains):
+def update_elbs(acme_client, elb_client, route53_client, iam_client, domains):
     for domain in domains:
         update_elb(
             acme_client,
             elb_client,
+            route53_client,
             iam_client,
             domain["elb"]["name"],
             domain["elb"]["port"],
@@ -180,6 +214,7 @@ def main(persistent=False):
     session = boto3.Session()
     s3_client = session.client("s3")
     elb_client = session.client("elb")
+    route53_client = session.client("route53")
     iam_client = session.client("iam")
     # Structure: {
     #     "domains": [
@@ -200,11 +235,15 @@ def main(persistent=False):
 
     if persistent:
         while True:
-            update_elbs(acme_client, elb_client, iam_client, domains)
+            update_elbs(
+                acme_client, elb_client, route53_client, iam_client, domains
+            )
             # Sleep a day before we check again
             time.sleep(60 * 60 * 24)
     else:
-        update_elbs(acme_client, elb_client, iam_client, domains)
+        update_elbs(
+            acme_client, elb_client, route53_client, iam_client, domains
+        )
 
 
 if __name__ == "__main__":
