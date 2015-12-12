@@ -53,6 +53,7 @@ def find_dns_challenge(authz):
 
 def find_zone_id_for_domain(route53_client, domain):
     # TODO: implement
+    raise NotImplementedError
 
 
 def wait_for_route53_change(route53_client, change_id):
