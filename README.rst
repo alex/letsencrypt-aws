@@ -32,7 +32,7 @@ the ACME server. Documentation for how to do this is outside the scope of
 ``letsencrypt-aws`` can access it.
 
 ``letsencrypt-aws`` takes it's configuration via the ``LETSENCRYPT_AWS_CONFIG``
-environment variables. This should be a JSON object with the following schema:
+environment variable. This should be a JSON object with the following schema:
 
 .. code-block:: json
 
