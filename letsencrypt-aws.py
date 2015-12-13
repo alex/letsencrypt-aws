@@ -60,7 +60,7 @@ def find_zone_id_for_domain(route53_client, domain):
             # ["foo.bar.baz.com", "bar.baz.com", "baz.com", "com"]
             if (
                 domain.endswith(zone["Name"]) or
-                (domain + ".").endswith(zone["Name"]
+                (domain + ".").endswith(zone["Name"])
             ):
                 return zone["Id"]
 
@@ -113,12 +113,14 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
         )
         for host in hosts
     ]
+    created_records = []
     for host, authz in authorizations:
         [dns_challenge] = find_dns_challenge(authz)
-        validation = dns_challenge.gen_validation(client.key)
+        validation = dns_challenge.gen_validation(acme_client.key)
 
+        zone_id = find_zone_id_for_domain(route53_client, host)
         response = route53_client.change_resource_record_sets(
-            HostedZoneId=find_zone_id_for_domain(route53_client, host),
+            HostedZoneId=zone_id,
             ChangeBatch={
                 "Changes": [
                     {
@@ -135,15 +137,18 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
                 ]
             }
         )
-        if response["ChangeInfo"]["Status"] != "INSYNC":
-            # TODO: reorganize this code so that we can create all the changes
-            # and then wait for them all, instead of serializing.
-            wait_for_route53_change(
-                route53_client, response["ChangeInfo"]["Id"]
-            )
+        created_records.append((
+            host,
+            dns_challenge,
+            response["ChangeInfo"]["Id"],
+            zone_id,
+        ))
 
-        response = dns_challenge.gen_response()
-        acme_client.answer_challenge(dns_challenge, response)
+    for host, dns_challenge, change_id, _ in created_records:
+        wait_for_route53_change(route53_client, change_id)
+        acme_client.answer_challenge(
+            dns_challenge, dns_challenge.gen_response()
+        )
 
     cert_response, _ = acme_client.poll_and_request_issuance(
         acme.jose.util.ComparableX509(
@@ -164,7 +169,22 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
         )
         for cert in acme_client.fetch_chain(cert_response)
     )
-    # TODO: delete Route53 records
+
+    for host, dns_challenge, _, zone_id in created_records:
+        route53_client.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "DELETE",
+                        "ResourceRecordSet": {
+                            "Name": dns_challenge.validation_domain_name(host),
+                            "Type": "TXT",
+                        }
+                    }
+                ]
+            }
+        )
 
     response = iam_client.upload_server_certificate(
         # TODO: is there some naming convention we should use?
