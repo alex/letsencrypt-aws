@@ -24,6 +24,7 @@ import rfc3986
 
 DEFAULT_ACME_DIRECTORY_URL = "https://acme-v01.api.letsencrypt.org/directory"
 CERTIFICATE_EXPIRATION_THRESHOLD = datetime.timedelta(days=45)
+PERSISTENT_SLEEP_INTERVAL = 60 * 60 * 24
 
 
 def generate_csr(private_key, hosts):
@@ -298,8 +299,8 @@ def main(persistent=False):
             update_elbs(
                 acme_client, elb_client, route53_client, iam_client, domains
             )
-            # Sleep a day before we check again
-            time.sleep(60 * 60 * 24)
+            # Sleep before we check again
+            time.sleep(PERSISTENT_SLEEP_INTERVAL)
     else:
         update_elbs(
             acme_client, elb_client, route53_client, iam_client, domains
