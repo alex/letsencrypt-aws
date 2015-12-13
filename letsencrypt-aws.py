@@ -2,7 +2,6 @@ import datetime
 import json
 import os
 import time
-import uuid
 
 import acme.challenges
 import acme.client
@@ -114,7 +113,7 @@ def delete_txt_record(route53_client, zone_id, domain):
 
 def generate_certificate_name(hosts, cert):
     return "{hosts}-{expiration}".format(
-        hosts="-".join(h.replace(".", "_") for h in hosts)
+        hosts="-".join(h.replace(".", "_") for h in hosts),
         expiration=cert.not_valid_after.date(),
     )
 
