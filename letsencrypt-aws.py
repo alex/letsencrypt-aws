@@ -270,6 +270,7 @@ def main(persistent=False):
     elb_client = session.client("elb")
     route53_client = session.client("route53")
     iam_client = session.client("iam")
+
     # Structure: {
     #     "domains": [
     #         {"elb": {"name" "...", "port" 443}, hosts: ["..."]}
