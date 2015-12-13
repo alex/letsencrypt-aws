@@ -52,8 +52,17 @@ def find_dns_challenge(authz):
 
 
 def find_zone_id_for_domain(route53_client, domain):
-    # TODO: implement
-    raise NotImplementedError
+    for page in route53_client.get_paginator("list_hosted_zones").paginate():
+        for zone in page["HostedZones"]:
+            # This assumes that zones are returned in a sorted order where
+            # zones are ordered by specificity, meaning they'd be in the
+            # following order:
+            # ["foo.bar.baz.com", "bar.baz.com", "baz.com", "com"]
+            if (
+                domain.endswith(zone["Name"]) or
+                (domain + ".").endswith(zone["Name"]
+            ):
+                return zone["Id"]
 
 
 def wait_for_route53_change(route53_client, change_id):
