@@ -63,7 +63,7 @@ Operational Security
 --------------------
 
 Keeping the source of your certificates secure is, for obvious reasons,
-important. ``letsencrypt-aws`` relies heavily on the AWS APIs to do it's
+important. ``letsencrypt-aws`` relies heavily on the AWS APIs to do its
 business, so we recommend running this code from EC2, so that you can use the
 Metadata service for managing credentials. You can give your EC2 instance an
 IAM instance profile with permissions to manage the relevant services (ELB,
