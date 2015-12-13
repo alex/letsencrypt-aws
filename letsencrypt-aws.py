@@ -65,6 +65,27 @@ def find_zone_id_for_domain(route53_client, domain):
                 return zone["Id"]
 
 
+def create_txt_record(route53_client, zone_id, domain, value):
+    response = route53_client.change_resource_record_sets(
+        HostedZoneId=zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": domain,
+                        "Type": "TXT",
+                        "ResourceRecords": [
+                            {"Value": value}
+                        ]
+                    }
+                }
+            ]
+        }
+    )
+    return response["ChangeInfo"]["Id"]
+
+
 def wait_for_route53_change(route53_client, change_id):
     while True:
         response = route53_client.get_change(Id=change_id)
@@ -119,28 +140,17 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
         validation = dns_challenge.gen_validation(acme_client.key)
 
         zone_id = find_zone_id_for_domain(route53_client, host)
-        response = route53_client.change_resource_record_sets(
-            HostedZoneId=zone_id,
-            ChangeBatch={
-                "Changes": [
-                    {
-                        "Action": "CREATE",
-                        "ResourceRecordSet": {
-                            "Name": dns_challenge.validation_domain_name(host),
-                            "Type": "TXT",
-                            "ResourceRecords": [
-                                # TODO: is this serialized correctly?
-                                {"Value": validation}
-                            ]
-                        }
-                    }
-                ]
-            }
+        change_id = create_txt_record(
+            route53_client,
+            zone_id,
+            dns_challenge.validation_domain_name(host),
+            # TODO: is this serialized correctly?
+            validation,
         )
         created_records.append((
             host,
             dns_challenge,
-            response["ChangeInfo"]["Id"],
+            change_id,
             zone_id,
         ))
 
