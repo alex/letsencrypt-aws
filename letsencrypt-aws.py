@@ -111,9 +111,11 @@ def delete_txt_record(route53_client, zone_id, domain):
     )
 
 
-def generate_certificate_name(hosts):
-    # TODO: include something to uniquify this, expiration date.
-    return "-".join(h.replace(".", "_") for h in hosts)
+def generate_certificate_name(hosts, cert):
+    return "{hosts}-{expiration}".format(
+        hosts="-".join(h.replace(".", "_") for h in hosts)
+        expiration=cert.not_valid_after.date(),
+    )
 
 
 def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
@@ -203,7 +205,10 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
     )
 
     response = iam_client.upload_server_certificate(
-        ServerCertificateName=generate_certificate_name(hosts),
+        ServerCertificateName=generate_certificate_name(
+            hosts,
+            x509.load_pem_x509_certificate(pem_certificate, default_backend())
+        ),
         PrivateKey=private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
