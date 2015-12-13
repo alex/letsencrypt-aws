@@ -111,6 +111,11 @@ def delete_txt_record(route53_client, zone_id, domain):
     )
 
 
+def generate_certificate_name(hosts):
+    # TODO: include something to uniquify this, expiration date.
+    return "-".join(h.replace(".", "_") for h in hosts)
+
+
 def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
                elb_port, hosts):
     response = elb_client.describe_load_balancers(
@@ -197,14 +202,8 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
         for cert in acme_client.fetch_chain(cert_response)
     )
 
-    for host, dns_challenge, _, zone_id in created_records:
-        delete_txt_record(
-            route53_client, zone_id, dns_challenge.validation_domain_name(host)
-        )
-
     response = iam_client.upload_server_certificate(
-        # TODO: is there some naming convention we should use?
-        ServerCertificateName=str(uuid.uuid4()),
+        ServerCertificateName=generate_certificate_name(hosts),
         PrivateKey=private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
@@ -221,6 +220,10 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
         LoadBalancerPort=elb_port,
     )
 
+    for host, dns_challenge, _, zone_id in created_records:
+        delete_txt_record(
+            route53_client, zone_id, dns_challenge.validation_domain_name(host)
+        )
     # TODO: Delete the old certificate?
 
 
