@@ -58,3 +58,21 @@ Then you can simply run it: ``python letsencrypt-aws.py``.
 
 If you add the ``--persistent`` flag it will run forever, rather than just
 once. This is useful for production environments.
+
+Operational Security
+--------------------
+
+Keeping the source of your certificates secure is, for obvious reasons,
+important. ``letsencrypt-aws`` relies heavily on the AWS APIs to do it's
+business, so we recommend running this code from EC2, so that you can use the
+Metadata service for managing credentials. You can give your EC2 instance an
+IAM instance profile with permissions to manage the relevant services (ELB,
+IAM, Route53).
+
+You need to make sure that the ACME account private key is kept secure. The
+best choice is probably in an S3 bucket with encryption enabled and access
+limited.
+
+Finally, wherever you're running ``letsencrypt-aws`` needs to be trusted.
+``letsencrypt-aws`` generates private keys in memory and uploads them to IAM
+immediately, they are never stored on disk.
