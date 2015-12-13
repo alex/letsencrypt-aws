@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import sys
 import time
 
 import acme.challenges
@@ -24,6 +25,17 @@ import rfc3986
 DEFAULT_ACME_DIRECTORY_URL = "https://acme-v01.api.letsencrypt.org/directory"
 CERTIFICATE_EXPIRATION_THRESHOLD = datetime.timedelta(days=45)
 PERSISTENT_SLEEP_INTERVAL = 60 * 60 * 24
+
+
+class Logger(object):
+    def __init__(self):
+        self._out = sys.stdout
+
+    def emit(self, event, **data):
+        formatted_data = " ".join(
+            "%s=%r" % (k, v) for k, v in data.iteritems()
+        )
+        self._out.write("[%s] %s\n" % (event, formatted_data))
 
 
 def generate_csr(private_key, hosts):
@@ -270,6 +282,9 @@ def setup_acme_client(s3_client, acme_directory_url, acme_account_key):
     "--persistent", is_flag=True, help="Runs in a loop, instead of just once."
 )
 def main(persistent=False):
+    logger = Logger()
+    logger.emit("startup")
+
     session = boto3.Session()
     s3_client = session.client("s3")
     elb_client = session.client("elb")
@@ -294,13 +309,16 @@ def main(persistent=False):
     )
 
     if persistent:
+        logger.emit("running", mode="persistent")
         while True:
             update_elbs(
                 acme_client, elb_client, route53_client, iam_client, domains
             )
             # Sleep before we check again
+            logger.emit("sleeping", duration=PERSISTENT_SLEEP_INTERVAL)
             time.sleep(PERSISTENT_SLEEP_INTERVAL)
     else:
+        logger.emit("running", mode="single")
         update_elbs(
             acme_client, elb_client, route53_client, iam_client, domains
         )
