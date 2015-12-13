@@ -1,3 +1,6 @@
+acme
 boto3
 click
 cryptography
+pyopenssl
+rfc3986

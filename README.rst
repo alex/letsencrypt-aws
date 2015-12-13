@@ -26,6 +26,11 @@ ELBs' certificates will be kept minty fresh.
 How to run it
 -------------
 
+Before you can use ``letsencrypt-aws`` you need to have created an account with
+the ACME server. Documentation for how to do this is outside the scope of
+``letsencrypt-aws``. You'll need to put the private key somewhere that
+``letsencrypt-aws`` can access it.
+
 ``letsencrypt-aws`` takes it's configuration via the ``LETSENCRYPT_AWS_CONFIG``
 environment variables. This should be a JSON object with the following schema:
 
@@ -40,8 +45,14 @@ environment variables. This should be a JSON object with the following schema:
                 },
                 "hosts": ["..."]
             }
-        ]
+        ],
+        "acme_account_key": "location of the account private key",
+        "acme_directory_url": "optional, can be used to test with staging"
     }
+
+The ``acme_account_key`` can either be located on the local filesystem or in
+S3. To specify a local file you provide ``"file:///path/to/key.pem"``, for S3
+provide ``"s3://bucket-nam/object-name"``.
 
 Then you can simply run it: ``python letsencrypt-aws.py``.
 
