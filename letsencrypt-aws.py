@@ -199,7 +199,7 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
 
     for host, dns_challenge, _, zone_id in created_records:
         delete_txt_record(
-            route53_client, zone, dns_challenge.validation_domain_name(host)
+            route53_client, zone_id, dns_challenge.validation_domain_name(host)
         )
 
     response = iam_client.upload_server_certificate(
