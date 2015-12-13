@@ -94,6 +94,23 @@ def wait_for_route53_change(route53_client, change_id):
         time.sleep(10)
 
 
+def delete_txt_record(route53_client, zone_id, domain):
+    route53_client.change_resource_record_sets(
+        HostedZoneId=zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "DELETE",
+                    "ResourceRecordSet": {
+                        "Name": domain,
+                        "Type": "TXT",
+                    }
+                }
+            ]
+        }
+    )
+
+
 def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
                elb_port, hosts):
     response = elb_client.describe_load_balancers(
@@ -181,19 +198,8 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
     )
 
     for host, dns_challenge, _, zone_id in created_records:
-        route53_client.change_resource_record_sets(
-            HostedZoneId=zone_id,
-            ChangeBatch={
-                "Changes": [
-                    {
-                        "Action": "DELETE",
-                        "ResourceRecordSet": {
-                            "Name": dns_challenge.validation_domain_name(host),
-                            "Type": "TXT",
-                        }
-                    }
-                ]
-            }
+        delete_txt_record(
+            route53_client, zone, dns_challenge.validation_domain_name(host)
         )
 
     response = iam_client.upload_server_certificate(
