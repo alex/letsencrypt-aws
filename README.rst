@@ -1,7 +1,7 @@
 letsencrypt-aws
 ===============
 
-**This is currently in development. It doesn't work. It will not be possible
+**This is currently in development. It doesn't work. It will not be usable
 until Lets Encrypt officially launches DNS challenges.**
 
 This will eventually be a program that can be run in the background which
