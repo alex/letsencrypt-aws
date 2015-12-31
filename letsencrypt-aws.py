@@ -167,15 +167,16 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     )
     csr = generate_csr(private_key, hosts)
 
-    authorizations = [
-        (
-            host,
-            acme_client.request_domain_challenges(
-                host, new_authz_uri=acme_client.directory.new_authz
-            )
+    authorizations = []
+    for host in hosts:
+        logger.emit(
+            "updating-elb.request-acme-challenge", elb_name=elb_name, host=host
         )
-        for host in hosts
-    ]
+        authz = acme_client.request_domain_challenges(
+            host, new_authz_uri=acme_client.directory.new_authz
+        )
+        authorizations.append((host, authz))
+
     created_records = []
     for host, authz in authorizations:
         [dns_challenge] = find_dns_challenge(authz)
