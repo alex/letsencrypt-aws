@@ -151,12 +151,14 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         if listener["Listener"]["LoadBalancerPort"] == elb_port
     ]
 
-    days_to_expiration = get_expiration_date_for_certificate(
+    expiration_date = get_expiration_date_for_certificate(
         iam_client, certificate_id
-    ).date() - datetime.date.today()
-    needs_update = days_to_expiration < CERTIFICATE_EXPIRATION_THRESHOLD
-
-    if not needs_update:
+    ).date()
+    logger.emit(
+        "updating-elb.certificate_expiration",
+        elb_name=elb_name, expiration_date=expiration_date
+    )
+    if (expiration_date - datetime.date.today()) > CERTIFICATE_EXPIRATION_THRESHOLD:
         return
 
     private_key = rsa.generate_private_key(
