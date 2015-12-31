@@ -145,20 +145,16 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         LoadBalancerNames=[elb_name]
     )
     [description] = response["LoadBalancerDescriptions"]
-    certificate_ids = [
+    [certificate_id] = [
         listener["Listener"]["SSLCertificateId"]
         for listener in description["ListenerDescriptions"]
         if listener["Listener"]["LoadBalancerPort"] == elb_port
     ]
 
-    assert len(certificate_ids) <= 1
-    if len(certificate_ids) == 1:
-        days_to_expiration = get_expiration_date_for_certificate(
-            iam_client, certificate_ids[0]
-        ).date() - datetime.date.today()
-        needs_update = days_to_expiration < CERTIFICATE_EXPIRATION_THRESHOLD
-    else:
-        needs_update = True
+    days_to_expiration = get_expiration_date_for_certificate(
+        iam_client, certificate_id
+    ).date() - datetime.date.today()
+    needs_update = days_to_expiration < CERTIFICATE_EXPIRATION_THRESHOLD
 
     if not needs_update:
         return
