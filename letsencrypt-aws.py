@@ -158,7 +158,8 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         "updating-elb.certificate_expiration",
         elb_name=elb_name, expiration_date=expiration_date
     )
-    if (expiration_date - datetime.date.today()) > CERTIFICATE_EXPIRATION_THRESHOLD:
+    days_until_expiration = expiration_date - datetime.date.today()
+    if days_until_expiration > CERTIFICATE_EXPIRATION_THRESHOLD:
         return
 
     private_key = rsa.generate_private_key(
