@@ -2,7 +2,7 @@ letsencrypt-aws
 ===============
 
 **This is currently in development. It doesn't work. It will not be usable
-until Lets Encrypt officially launches DNS challenges.**
+until Let's Encrypt officially launches DNS challenges.**
 
 This will eventually be a program that can be run in the background which
 automatically provisions and updates certificates on your AWS infrastructure.
@@ -14,9 +14,9 @@ How it works
 able to serve. It runs in a loop and every day does the following:
 
 It gets the certificate for that ELB. If the certificate is going to expire
-soon, it generates a new private key and CSR and sends a request to Lets
-Encrypt. It takes the DNS challenge time and creates a record in Route53 for
-that challenge. This completes the Lets Encrypt challenge and we receive a
+soon, it generates a new private key and CSR and sends a request to Let's
+Encrypt. It takes the DNS challenge and creates a record in Route53 for that
+challenge. This completes the Let's Encrypt challenge and we receive a
 certificate. It uploads the new certificate and private key to IAM and updates
 your ELB to use the certificate.
 
