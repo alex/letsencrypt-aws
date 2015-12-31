@@ -56,7 +56,7 @@ def generate_csr(private_key, hosts):
 
 def find_dns_challenge(authz):
     for combo in authz.body.resolved_combinations:
-        if len(combo) == 1 and isinstance(combo[0], acme.challenges.DNS):
+        if len(combo) == 1 and isinstance(combo[0].chall, acme.challenges.DNS):
             yield combo[0]
 
 
