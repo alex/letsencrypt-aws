@@ -77,3 +77,24 @@ limited.
 Finally, wherever you're running ``letsencrypt-aws`` needs to be trusted.
 ``letsencrypt-aws`` generates private keys in memory and uploads them to IAM
 immediately, they are never stored on disk.
+
+IAM Roles
+~~~~~~~~~
+
+The minimum set of permissions needed for ``letsencrypt-aws`` to work is:
+
+* ``route53:ChangeResourceRecordSets``
+* ``route53:GetChange``
+* ``route53:ListHostedZones``
+* ``elasticloadbalancing:DescribeLoadBalancers``
+* ``elasticloadbalancing:SetLoadBalancerListenerSSLCertificate``
+* ``iam:GetServerCertificate``
+* ``iam:UploadServerCertificate``
+
+If your ``acme_account_key`` is provided as an ``s3://`` URI you will also
+need:
+
+* ``s3:GetObject``
+
+It's likely possible to restrict these permissions by ARN, though this has not
+been fully explored.
