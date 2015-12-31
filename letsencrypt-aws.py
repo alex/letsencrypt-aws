@@ -138,8 +138,9 @@ def get_expiration_date_for_certificate(iam_client, ssl_certificate_arn):
                 return server_certificate["Expiration"]
 
 
-def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
-               elb_port, hosts):
+def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
+               elb_name, elb_port, hosts):
+    logger.emit("updating-elb", elb_name=elb_name)
     response = elb_client.describe_load_balancers(
         LoadBalancerNames=[elb_name]
     )
@@ -250,9 +251,11 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
     # TODO: Delete the old certificate?
 
 
-def update_elbs(acme_client, elb_client, route53_client, iam_client, domains):
+def update_elbs(logger, acme_client, elb_client, route53_client, iam_client,
+                domains):
     for domain in domains:
         update_elb(
+            logger,
             acme_client,
             elb_client,
             route53_client,
@@ -318,7 +321,8 @@ def main(persistent=False):
         logger.emit("running", mode="persistent")
         while True:
             update_elbs(
-                acme_client, elb_client, route53_client, iam_client, domains
+                logger, acme_client, elb_client, route53_client, iam_client,
+                domains
             )
             # Sleep before we check again
             logger.emit("sleeping", duration=PERSISTENT_SLEEP_INTERVAL)
@@ -326,7 +330,8 @@ def main(persistent=False):
     else:
         logger.emit("running", mode="single")
         update_elbs(
-            acme_client, elb_client, route53_client, iam_client, domains
+            logger, acme_client, elb_client, route53_client, iam_client,
+            domains
         )
 
 
