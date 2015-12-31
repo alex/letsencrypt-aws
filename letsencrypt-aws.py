@@ -55,12 +55,9 @@ def generate_csr(private_key, hosts):
 
 
 def find_dns_challenge(authz):
-    for combo in authz.body.combinations:
-        if (
-            len(combo) == 1 and
-            isinstance(authz.body.challenges[combo[0]], acme.challenges.DNS)
-        ):
-            yield authz.body.challenges[combo[0]]
+    for combo in authz.body.resolved_combinations:
+        if len(combo) == 1 and isinstance(combo[0], acme.challenges.DNS):
+            yield combo[0]
 
 
 def find_zone_id_for_domain(route53_client, domain):
