@@ -131,7 +131,8 @@ def generate_certificate_name(hosts, cert):
 
 
 def get_expiration_date_for_certificate(iam_client, ssl_certificate_arn):
-    for page in iam_client.get_paginator("list_server_certificates").paginate():
+    paginator = iam_client.get_paginator("list_server_certificates").paginate()
+    for page in paginator:
         for server_certificate in page["ServerCertificateMetadataList"]:
             if server_certificate["Arn"] == ssl_certificate_arn:
                 return server_certificate["Expiration"]
