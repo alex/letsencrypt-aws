@@ -130,6 +130,13 @@ def generate_certificate_name(hosts, cert):
     )
 
 
+def get_expiration_date_for_certificate(iam_client, ssl_certificate_arn):
+    for page in iam_client.get_paginator("list_server_certificates").paginate():
+        for server_certificate in page["ServerCertificateMetadataList"]:
+            if server_certificate["Arn"] == ssl_certificate_arn:
+                return server_certificate["Expiration"]
+
+
 def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
                elb_port, hosts):
     response = elb_client.describe_load_balancers(
@@ -144,11 +151,9 @@ def update_elb(acme_client, elb_client, route53_client, iam_client, elb_name,
 
     assert len(certificate_ids) <= 1
     if len(certificate_ids) == 1:
-        response = iam_client.get_server_certificate(
-            ServerCertificateName=certificate_ids[0]
-        )
-        metadata = response["ServerCertificate"]["ServerCertificateMetadata"]
-        days_to_expiration = metadata["Expiration"] - datetime.date.today()
+        days_to_expiration = get_expiration_date_for_certificate(
+            iam_client, certificate_ids[0]
+        ).date() - datetime.date.today()
         needs_update = days_to_expiration < CERTIFICATE_EXPIRATION_THRESHOLD
     else:
         needs_update = True

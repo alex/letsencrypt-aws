@@ -88,7 +88,7 @@ The minimum set of permissions needed for ``letsencrypt-aws`` to work is:
 * ``route53:ListHostedZones``
 * ``elasticloadbalancing:DescribeLoadBalancers``
 * ``elasticloadbalancing:SetLoadBalancerListenerSSLCertificate``
-* ``iam:GetServerCertificate``
+* ``iam:ListServerCertificates``
 * ``iam:UploadServerCertificate``
 
 If your ``acme_account_key`` is provided as an ``s3://`` URI you will also
