@@ -35,7 +35,11 @@ class Logger(object):
         formatted_data = " ".join(
             "%s=%r" % (k, v) for k, v in data.iteritems()
         )
-        self._out.write("[%s] %s\n" % (event, formatted_data))
+        self._out.write("{} [{}] {}\n".format(
+            datetime.datetime.utcnow().replace(microsecond=0),
+            event,
+            formatted_data
+        ))
 
 
 def generate_csr(private_key, hosts):
