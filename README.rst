@@ -1,11 +1,20 @@
 letsencrypt-aws
 ===============
 
+This will eventually be a program that can be run in the background which
+automatically provisions and updates certificates on your AWS infrastructure.
+
+Status
+------
+
 **This is currently in development. It doesn't work. It will not be usable
 until Let's Encrypt officially launches DNS challenges.**
 
-This will eventually be a program that can be run in the background which
-automatically provisions and updates certificates on your AWS infrastructure.
+DNS challenges are currently available in the Let's Encrypt staging
+environment, however there are (at least) a few blockers:
+
+* https://github.com/letsencrypt/boulder/pull/1295
+* https://github.com/letsencrypt/letsencrypt/pull/2052
 
 How it works
 ------------
