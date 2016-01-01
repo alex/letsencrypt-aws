@@ -83,8 +83,11 @@ def create_txt_record(route53_client, zone_id, domain, value):
                     "ResourceRecordSet": {
                         "Name": domain,
                         "Type": "TXT",
+                        "TTL": 30,
                         "ResourceRecords": [
-                            {"Value": value}
+                            # For some reason TXT records need to be manually
+                            # quoted.
+                            {"Value": '"{}"'.format(value)}
                         ]
                     }
                 }
