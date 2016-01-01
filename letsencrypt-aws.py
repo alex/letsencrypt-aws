@@ -265,7 +265,6 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         delete_txt_record(
             route53_client, zone_id, dns_challenge.validation_domain_name(host)
         )
-    # TODO: Delete the old certificate?
 
 
 def update_elbs(logger, acme_client, elb_client, route53_client, iam_client,
