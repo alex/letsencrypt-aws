@@ -200,7 +200,13 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         ))
 
     for host, dns_challenge, change_id, _ in created_records:
+        logger.emit(
+            "updating-elb.wait-for-route53", elb_name=elb_name, host=host
+        )
         wait_for_route53_change(route53_client, change_id)
+        logger.emit(
+            "updating-elb.answer-challenge", elb_name=elb_name, host=host
+        )
         acme_client.answer_challenge(
             dns_challenge, dns_challenge.gen_response()
         )
