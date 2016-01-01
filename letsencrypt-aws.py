@@ -193,7 +193,6 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
             route53_client,
             zone_id,
             dns_challenge.validation_domain_name(host),
-            # TODO: is this serialized correctly?
             validation,
         )
         created_records.append((
@@ -223,7 +222,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
                 csr.public_bytes(serialization.Encoding.DER),
             )
         ),
-        authzrs=[authz for _, authz in authorizations]
+        authzrs=[authz for _, authz in authorizations],
     )
     pem_certificate = OpenSSL.crypto.dump_privatekey(
         OpenSSL.crypto.FILETYPE_PEM, cert_response.body
