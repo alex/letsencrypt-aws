@@ -63,9 +63,8 @@ def find_dns_challenge(authz):
 def find_zone_id_for_domain(route53_client, domain):
     for page in route53_client.get_paginator("list_hosted_zones").paginate():
         for zone in page["HostedZones"]:
-            # This assumes that zones are returned in a sorted order where
-            # zones are ordered by specificity, meaning they'd be in the
-            # following order:
+            # This assumes that zones are returned sorted by specificity,
+            # meaning they'd be in the following order:
             # ["foo.bar.baz.com", "bar.baz.com", "baz.com", "com"]
             if (
                 domain.endswith(zone["Name"]) or
