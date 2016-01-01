@@ -182,6 +182,9 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         validation = dns_challenge.gen_validation(acme_client.key)
 
         zone_id = find_zone_id_for_domain(route53_client, host)
+        logger.emit(
+            "updating-elb.create-txt-record", elb_name=elb_name, host=host
+        )
         change_id = create_txt_record(
             route53_client,
             zone_id,
