@@ -235,6 +235,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         for cert in acme_client.fetch_chain(cert_response)
     )
 
+    logger.emit("updating-elb.upload-iam-certificate", elb_name=elb_name)
     response = iam_client.upload_server_certificate(
         ServerCertificateName=generate_certificate_name(
             hosts,
@@ -250,6 +251,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     )
     new_cert_arn = response["ServerCertificateMetadata"]["Arn"]
 
+    logger.emit("updating-elb.set-elb-certificate", elb_name=elb_name)
     elb_client.set_load_balancer_listener_ssl_certificate(
         LoadBalancerName=elb_name,
         SSLCertificateId=new_cert_arn,
@@ -257,6 +259,9 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     )
 
     for host, dns_challenge, _, zone_id in created_records:
+        logger.emit(
+            "updating-elb.delete-txt-record", elb_name=elb_name, host=host
+        )
         delete_txt_record(
             route53_client, zone_id, dns_challenge.validation_domain_name(host)
         )
