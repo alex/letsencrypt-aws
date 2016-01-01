@@ -211,6 +211,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
             dns_challenge, dns_challenge.gen_response()
         )
 
+    logger.emit("updating-elb.request-cert", elb_name=elb_name)
     cert_response, _ = acme_client.poll_and_request_issuance(
         acme.jose.util.ComparableX509(
             OpenSSL.crypto.load_certificate_request(
