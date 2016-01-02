@@ -14,7 +14,7 @@ DNS challenges are currently available in the Let's Encrypt staging
 environment, however there are (at least) a few blockers:
 
 * https://github.com/letsencrypt/boulder/pull/1295
-* https://github.com/letsencrypt/letsencrypt/pull/2052
+* https://github.com/letsencrypt/letsencrypt/pull/2061
 
 How it works
 ------------
