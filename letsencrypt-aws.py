@@ -210,12 +210,22 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
             "updating-elb.wait-for-route53", elb_name=elb_name, host=host
         )
         wait_for_route53_change(route53_client, change_id)
+
+        response = dns_challenge.response(acme_client.key)
+
+        logger.emit(
+            "updating-elb.local-validation", elb_name=elb_name, host=host
+        )
+        verified = response.simple_verify(
+            dns_challenge.chall, host, acme_client.key.public_key()
+        )
+        if not verified:
+            raise ValueError("Failed verification")
+
         logger.emit(
             "updating-elb.answer-challenge", elb_name=elb_name, host=host
         )
-        acme_client.answer_challenge(
-            dns_challenge, dns_challenge.response(acme_client.key)
-        )
+        acme_client.answer_challenge(dns_challenge, response)
 
     logger.emit("updating-elb.request-cert", elb_name=elb_name)
     cert_response, _ = acme_client.poll_and_request_issuance(
