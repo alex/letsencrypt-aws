@@ -60,7 +60,10 @@ def generate_csr(private_key, hosts):
 
 def find_dns_challenge(authz):
     for combo in authz.body.resolved_combinations:
-        if len(combo) == 1 and isinstance(combo[0].chall, acme.challenges.DNS):
+        if (
+            len(combo) == 1 and
+            isinstance(combo[0].chall, acme.challenges.DNS01)
+        ):
             yield combo[0]
 
 
@@ -183,7 +186,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     created_records = []
     for host, authz in authorizations:
         [dns_challenge] = find_dns_challenge(authz)
-        validation = dns_challenge.gen_validation(acme_client.key)
+        validation = dns_challenge.validation(acme_client.key)
 
         zone_id = find_zone_id_for_domain(route53_client, host)
         logger.emit(
@@ -211,7 +214,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
             "updating-elb.answer-challenge", elb_name=elb_name, host=host
         )
         acme_client.answer_challenge(
-            dns_challenge, dns_challenge.gen_response()
+            dns_challenge, dns_challenge.response(acme_client.key)
         )
 
     logger.emit("updating-elb.request-cert", elb_name=elb_name)
