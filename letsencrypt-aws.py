@@ -168,7 +168,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         iam_client, certificate_id
     ).date()
     logger.emit(
-        "updating-elb.certificate_expiration",
+        "updating-elb.certificate-expiration",
         elb_name=elb_name, expiration_date=expiration_date
     )
     days_until_expiration = expiration_date - datetime.date.today()
