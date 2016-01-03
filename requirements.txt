@@ -3,5 +3,5 @@
 boto3
 click
 cryptography>=1.1.2
-pyopenssl
+pyopenssl>=0.15.1
 rfc3986
