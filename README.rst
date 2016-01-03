@@ -87,8 +87,8 @@ Finally, wherever you're running ``letsencrypt-aws`` needs to be trusted.
 ``letsencrypt-aws`` generates private keys in memory and uploads them to IAM
 immediately, they are never stored on disk.
 
-IAM Roles
-~~~~~~~~~
+IAM Policy
+~~~~~~~~~~
 
 The minimum set of permissions needed for ``letsencrypt-aws`` to work is:
 
