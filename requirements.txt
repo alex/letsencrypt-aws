@@ -2,6 +2,6 @@
 -e git+https://github.com/wteiken/letsencrypt@add_dns01_challenge#subdirectory=acme&egg=acme
 boto3
 click
-cryptography
+cryptography>=1.1.2
 pyopenssl
 rfc3986
