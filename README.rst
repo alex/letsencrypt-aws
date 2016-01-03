@@ -87,7 +87,7 @@ below for complete details).
 
 You need to make sure that the ACME account private key is kept secure. The
 best choice is probably in an S3 bucket with encryption enabled and access
-limited.
+limited with IAM.
 
 Finally, wherever you're running ``letsencrypt-aws`` needs to be trusted.
 ``letsencrypt-aws`` generates private keys in memory and uploads them to IAM
