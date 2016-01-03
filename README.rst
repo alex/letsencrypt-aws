@@ -81,8 +81,8 @@ Keeping the source of your certificates secure is, for obvious reasons,
 important. ``letsencrypt-aws`` relies heavily on the AWS APIs to do its
 business, so we recommend running this code from EC2, so that you can use the
 Metadata service for managing credentials. You can give your EC2 instance an
-IAM instance profile with permissions to manage the relevant services (ELB,
-IAM, Route53).
+IAM instance profile with permissions to manage the relevant services (see
+below for complete details).
 
 You need to make sure that the ACME account private key is kept secure. The
 best choice is probably in an S3 bucket with encryption enabled and access
