@@ -62,7 +62,7 @@ environment variable. This should be a JSON object with the following schema:
             }
         ],
         "acme_account_key": "location of the account private key (string)",
-        "acme_directory_url": "optional, can be used to test with staging (string)"
+        "acme_directory_url": "optional, defaults to Let's Encrypt production (string)"
     }
 
 The ``acme_account_key`` can either be located on the local filesystem or in
