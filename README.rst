@@ -11,8 +11,8 @@ Status
 until Let's Encrypt officially launches DNS challenges.**
 
 DNS challenges are currently available in the Let's Encrypt staging
-environment, however there are (at least) a few blockers before this is usable
-in staging:
+environment, however there are a few known blockers before this is usable in
+staging:
 
 * https://github.com/letsencrypt/boulder/pull/1295
 * https://github.com/letsencrypt/letsencrypt/pull/2061
