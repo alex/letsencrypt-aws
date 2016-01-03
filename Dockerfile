@@ -6,6 +6,7 @@ ENV LAST_UPDATE 1
 RUN apt-get update
 RUN apt-get upgrade
 RUN apt-get install -y build-essential libffi-dev libssl-dev
+RUN apt-get install -y git
 
 WORKDIR /app/
 
