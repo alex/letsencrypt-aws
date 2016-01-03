@@ -38,7 +38,7 @@ How to run it
 Before you can use ``letsencrypt-aws`` you need to have created an account with
 the ACME server. Documentation for how to do this is outside the scope of
 ``letsencrypt-aws``. You'll need to put the private key somewhere that
-``letsencrypt-aws`` can access it.
+``letsencrypt-aws`` can access it (either on the local filesystem or in S3).
 
 ``letsencrypt-aws`` takes it's configuration via the ``LETSENCRYPT_AWS_CONFIG``
 environment variable. This should be a JSON object with the following schema:
