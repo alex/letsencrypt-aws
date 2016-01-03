@@ -109,7 +109,7 @@ def wait_for_route53_change(route53_client, change_id):
         response = route53_client.get_change(Id=change_id)
         if response["ChangeInfo"]["Status"] == "INSYNC":
             return
-        time.sleep(10)
+        time.sleep(5)
 
 
 def delete_txt_record(route53_client, zone_id, domain):
