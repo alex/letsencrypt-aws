@@ -244,7 +244,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         ),
         authzrs=[authz for _, authz in authorizations],
     )
-    pem_certificate = OpenSSL.crypto.dump_privatekey(
+    pem_certificate = OpenSSL.crypto.dump_certificate(
         OpenSSL.crypto.FILETYPE_PEM, cert_response.body
     )
     pem_certificate_chain = "\n".join(
