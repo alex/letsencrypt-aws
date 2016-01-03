@@ -49,14 +49,14 @@ environment variable. This should be a JSON object with the following schema:
         "domains": [
             {
                 "elb": {
-                    "name": "ELB name",
-                    "port": 443
+                    "name": "ELB name (string)",
+                    "port": "optional, defaults to 443 (integer)"
                 },
-                "hosts": ["..."]
+                "hosts": ["list of hosts you want on the certificate (strings)"]
             }
         ],
-        "acme_account_key": "location of the account private key",
-        "acme_directory_url": "optional, can be used to test with staging"
+        "acme_account_key": "location of the account private key (string)",
+        "acme_directory_url": "optional, can be used to test with staging (string)"
     }
 
 The ``acme_account_key`` can either be located on the local filesystem or in

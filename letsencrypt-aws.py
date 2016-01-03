@@ -294,7 +294,7 @@ def update_elbs(logger, acme_client, elb_client, route53_client, iam_client,
             route53_client,
             iam_client,
             domain["elb"]["name"],
-            domain["elb"]["port"],
+            domain["elb"].get("port", 443),
             domain["hosts"]
         )
 
