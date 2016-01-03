@@ -24,6 +24,7 @@ import rfc3986
 
 DEFAULT_ACME_DIRECTORY_URL = "https://acme-v01.api.letsencrypt.org/directory"
 CERTIFICATE_EXPIRATION_THRESHOLD = datetime.timedelta(days=45)
+# One day
 PERSISTENT_SLEEP_INTERVAL = 60 * 60 * 24
 
 
