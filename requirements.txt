@@ -4,4 +4,4 @@ boto3>=1.2.3
 click>=6.2
 cryptography>=1.1.2
 pyopenssl>=0.15.1
-rfc3986
+rfc3986>=0.3.1
