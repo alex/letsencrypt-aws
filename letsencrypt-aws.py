@@ -310,7 +310,9 @@ def setup_acme_client(s3_client, acme_directory_url, acme_account_key):
         response = s3_client.get_object(Bucket=uri.host, Key=uri.path[1:])
         key = response["Body"].read()
     else:
-        raise ValueError("Invalid acme account key: {!r}".format(acme_account_key))
+        raise ValueError(
+            "Invalid acme account key: {!r}".format(acme_account_key)
+        )
 
     key = serialization.load_pem_private_key(
         key, password=None, backend=default_backend()
