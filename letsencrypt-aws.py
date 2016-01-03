@@ -136,6 +136,19 @@ def generate_certificate_name(hosts, cert):
     )
 
 
+def get_load_balancer_certificate(elb_client, elb_name, elb_port):
+    response = elb_client.describe_load_balancers(
+        LoadBalancerNames=[elb_name]
+    )
+    [description] = response["LoadBalancerDescriptions"]
+    [certificate_id] = [
+        listener["Listener"]["SSLCertificateId"]
+        for listener in description["ListenerDescriptions"]
+        if listener["Listener"]["LoadBalancerPort"] == elb_port
+    ]
+    return certificate_id
+
+
 def get_expiration_date_for_certificate(iam_client, ssl_certificate_arn):
     paginator = iam_client.get_paginator("list_server_certificates").paginate()
     for page in paginator:
@@ -147,15 +160,9 @@ def get_expiration_date_for_certificate(iam_client, ssl_certificate_arn):
 def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
                elb_name, elb_port, hosts):
     logger.emit("updating-elb", elb_name=elb_name)
-    response = elb_client.describe_load_balancers(
-        LoadBalancerNames=[elb_name]
+    certificate_id = get_load_balancer_certificate(
+        elb_client, elb_name, elb_port
     )
-    [description] = response["LoadBalancerDescriptions"]
-    [certificate_id] = [
-        listener["Listener"]["SSLCertificateId"]
-        for listener in description["ListenerDescriptions"]
-        if listener["Listener"]["LoadBalancerPort"] == elb_port
-    ]
 
     expiration_date = get_expiration_date_for_certificate(
         iam_client, certificate_id
