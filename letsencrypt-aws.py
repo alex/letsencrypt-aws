@@ -116,6 +116,7 @@ def wait_for_route53_change(route53_client, change_id):
 
 
 def delete_txt_record(route53_client, zone_id, domain):
+    # TODO: need to include the `SetIdentifier` here, otherwise this fails.
     route53_client.change_resource_record_sets(
         HostedZoneId=zone_id,
         ChangeBatch={
