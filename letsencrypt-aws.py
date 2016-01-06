@@ -54,7 +54,8 @@ def generate_csr(private_key, hosts):
             x509.DNSName(host)
             for host in hosts
         ]),
-        critical=True
+        # TODO: change to `critical=True` when Let's Encrypt supports it.
+        critical=False,
     )
     return csr_builder.sign(private_key, hashes.SHA256(), default_backend())
 
