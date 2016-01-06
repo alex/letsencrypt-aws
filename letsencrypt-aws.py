@@ -270,6 +270,9 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     )
     new_cert_arn = response["ServerCertificateMetadata"]["Arn"]
 
+    # Sleep before trying to set the certificate, it appears to sometimes fail
+    # without this.
+    time.sleep(5)
     logger.emit("updating-elb.set-elb-certificate", elb_name=elb_name)
     elb_client.set_load_balancer_listener_ssl_certificate(
         LoadBalancerName=elb_name,
