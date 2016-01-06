@@ -7,14 +7,13 @@ automatically provisions and updates certificates on your AWS infrastructure.
 Status
 ------
 
-**This is currently in development. It doesn't work. It will not be usable
-until Let's Encrypt officially launches DNS challenges.**
+**This is currently in development. It will not be usable until Let's Encrypt
+officially launches DNS challenges.**
 
-DNS challenges are currently available in the Let's Encrypt staging
-environment, however there are a few known blockers before this is usable in
-staging:
+This is able to issue certificates in Let's Encrypt's staging environment, DNS
+challenges are not available in production yet.
 
-* https://github.com/letsencrypt/letsencrypt/pull/2061
+There's also a bug with deleting records in Route53 when we're done.
 
 How it works
 ------------
