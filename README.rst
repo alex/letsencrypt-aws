@@ -1,8 +1,9 @@
 letsencrypt-aws
 ===============
 
-This will eventually be a program that can be run in the background which
-automatically provisions and updates certificates on your AWS infrastructure.
+``letsencrypt-aws`` is a program that can be run in the background which
+automatically provisions and updates certificates on your AWS infrastructure
+using the AWS APIs and Let's Encrypt.
 
 Status
 ------
