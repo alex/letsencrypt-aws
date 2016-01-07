@@ -84,30 +84,6 @@ def find_zone_id_for_domain(route53_client, domain):
                 return zone["Id"]
 
 
-def create_txt_record(route53_client, zone_id, domain, value):
-    response = route53_client.change_resource_record_sets(
-        HostedZoneId=zone_id,
-        ChangeBatch={
-            "Changes": [
-                {
-                    "Action": "CREATE",
-                    "ResourceRecordSet": {
-                        "Name": domain,
-                        "Type": "TXT",
-                        "TTL": DNS_TTL,
-                        "ResourceRecords": [
-                            # For some reason TXT records need to be manually
-                            # quoted.
-                            {"Value": '"{}"'.format(value)}
-                        ]
-                    }
-                }
-            ]
-        }
-    )
-    return response["ChangeInfo"]["Id"]
-
-
 def wait_for_route53_change(route53_client, change_id):
     while True:
         response = route53_client.get_change(Id=change_id)
@@ -116,13 +92,13 @@ def wait_for_route53_change(route53_client, change_id):
         time.sleep(5)
 
 
-def delete_txt_record(route53_client, zone_id, domain, value):
-    route53_client.change_resource_record_sets(
+def change_txt_record(route53_client, action, zone_id, domain, value):
+    response = route53_client.change_resource_record_sets(
         HostedZoneId=zone_id,
         ChangeBatch={
             "Changes": [
                 {
-                    "Action": "DELETE",
+                    "Action": action,
                     "ResourceRecordSet": {
                         "Name": domain,
                         "Type": "TXT",
@@ -137,6 +113,7 @@ def delete_txt_record(route53_client, zone_id, domain, value):
             ]
         }
     )
+    return response["ChangeInfo"]["Id"]
 
 
 def generate_certificate_name(hosts, cert):
@@ -209,8 +186,9 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         logger.emit(
             "updating-elb.create-txt-record", elb_name=elb_name, host=host
         )
-        change_id = create_txt_record(
+        change_id = change_txt_record(
             route53_client,
+            "CREATE",
             zone_id,
             dns_challenge.validation_domain_name(host),
             dns_challenge.validation(acme_client.key),
@@ -292,8 +270,9 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         logger.emit(
             "updating-elb.delete-txt-record", elb_name=elb_name, host=host
         )
-        delete_txt_record(
+        change_txt_record(
             route53_client,
+            "DELETE",
             zone_id,
             dns_challenge.validation_domain_name(host),
             dns_challenge.validation(acme_client.key),
