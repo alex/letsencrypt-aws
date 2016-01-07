@@ -13,8 +13,6 @@ officially launches DNS challenges.**
 This is able to issue certificates in Let's Encrypt's staging environment, DNS
 challenges are not available in production yet.
 
-There's also a bug with deleting records in Route53 when we're done.
-
 How it works
 ------------
 

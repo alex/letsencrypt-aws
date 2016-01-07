@@ -27,6 +27,7 @@ DEFAULT_ACME_DIRECTORY_URL = "https://acme-v01.api.letsencrypt.org/directory"
 CERTIFICATE_EXPIRATION_THRESHOLD = datetime.timedelta(days=45)
 # One day
 PERSISTENT_SLEEP_INTERVAL = 60 * 60 * 24
+DNS_TTL = 30
 
 
 class Logger(object):
@@ -93,7 +94,7 @@ def create_txt_record(route53_client, zone_id, domain, value):
                     "ResourceRecordSet": {
                         "Name": domain,
                         "Type": "TXT",
-                        "TTL": 30,
+                        "TTL": DNS_TTL,
                         "ResourceRecords": [
                             # For some reason TXT records need to be manually
                             # quoted.
@@ -115,8 +116,7 @@ def wait_for_route53_change(route53_client, change_id):
         time.sleep(5)
 
 
-def delete_txt_record(route53_client, zone_id, domain):
-    # TODO: need to include the `SetIdentifier` here, otherwise this fails.
+def delete_txt_record(route53_client, zone_id, domain, value):
     route53_client.change_resource_record_sets(
         HostedZoneId=zone_id,
         ChangeBatch={
@@ -126,6 +126,12 @@ def delete_txt_record(route53_client, zone_id, domain):
                     "ResourceRecordSet": {
                         "Name": domain,
                         "Type": "TXT",
+                        "TTL": DNS_TTL,
+                        "ResourceRecords": [
+                            # For some reason TXT records need to be manually
+                            # quoted.
+                            {"Value": '"{}"'.format(value)}
+                        ],
                     }
                 }
             ]
@@ -198,7 +204,6 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     created_records = []
     for host, authz in authorizations:
         [dns_challenge] = find_dns_challenge(authz)
-        validation = dns_challenge.validation(acme_client.key)
 
         zone_id = find_zone_id_for_domain(route53_client, host)
         logger.emit(
@@ -208,7 +213,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
             route53_client,
             zone_id,
             dns_challenge.validation_domain_name(host),
-            validation,
+            dns_challenge.validation(acme_client.key),
         )
         created_records.append((
             host,
@@ -275,7 +280,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
 
     # Sleep before trying to set the certificate, it appears to sometimes fail
     # without this.
-    time.sleep(5)
+    time.sleep(15)
     logger.emit("updating-elb.set-elb-certificate", elb_name=elb_name)
     elb_client.set_load_balancer_listener_ssl_certificate(
         LoadBalancerName=elb_name,
@@ -288,7 +293,10 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
             "updating-elb.delete-txt-record", elb_name=elb_name, host=host
         )
         delete_txt_record(
-            route53_client, zone_id, dns_challenge.validation_domain_name(host)
+            route53_client,
+            zone_id,
+            dns_challenge.validation_domain_name(host),
+            dns_challenge.validation(acme_client.key),
         )
 
 
