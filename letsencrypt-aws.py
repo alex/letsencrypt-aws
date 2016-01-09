@@ -437,9 +437,7 @@ def register(email):
     )
 
     logger.emit("acme-register.generate-key")
-    private_key = rsa.generate_private_key(
-        public_exponent=65537, key_size=2048, backend=default_backend()
-    )
+    private_key = generate_rsa_private_key()
     acme_client = acme_client_for_private_key(acme_directory_url, private_key)
 
     logger.emit("acme-register.register", email=email)
