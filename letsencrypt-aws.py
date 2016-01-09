@@ -44,6 +44,12 @@ class Logger(object):
         ))
 
 
+def generate_rsa_private_key():
+    return rsa.generate_private_key(
+        public_exponent=65537, key_size=2048, backend=default_backend()
+    )
+
+
 def generate_csr(private_key, hosts):
     csr_builder = x509.CertificateSigningRequestBuilder().subject_name(
         # This is the same thing the official letsencrypt client does.
@@ -283,9 +289,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     if days_until_expiration > CERTIFICATE_EXPIRATION_THRESHOLD:
         return
 
-    private_key = rsa.generate_private_key(
-        public_exponent=65537, key_size=2048, backend=default_backend()
-    )
+    private_key = generate_rsa_private_key()
     csr = generate_csr(private_key, hosts)
 
     authorizations = []
