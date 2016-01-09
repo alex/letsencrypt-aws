@@ -69,6 +69,9 @@ Then you can simply run it: `python letsencrypt-aws.py`.
 If you add the `--persistent` flag it will run forever, rather than just once.
 This is useful for production environments.
 
+If you're into [Docker](https://www.docker.com/), there is an automatically
+built image of `letsencrypt-aws` available as `alexgaynor/letsencrypt-aws`.
+
 ## Operational Security
 
 Keeping the source of your certificates secure is, for obvious reasons,
