@@ -290,41 +290,42 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     csr = generate_csr(private_key, hosts)
 
     authorizations = []
-    for host in hosts:
-        authz_record = start_dns_challenge(
-            logger, acme_client, elb_client, route53_client, elb_name, host
-        )
-        authorizations.append(authz_record)
+    try:
+        for host in hosts:
+            authz_record = start_dns_challenge(
+                logger, acme_client, elb_client, route53_client, elb_name, host
+            )
+            authorizations.append(authz_record)
 
-    for authz_record in authorizations:
-        complete_dns_challenge(
-            logger, acme_client, route53_client, elb_name, authz_record
+        for authz_record in authorizations:
+            complete_dns_challenge(
+                logger, acme_client, route53_client, elb_name, authz_record
+            )
+
+        pem_certificate, pem_certificate_chain = request_certificate(
+            logger, acme_client, elb_name, authorizations, csr
         )
 
-    pem_certificate, pem_certificate_chain = request_certificate(
-        logger, acme_client, elb_name, authorizations, csr
-    )
-
-    add_certificate_to_elb(
-        logger,
-        elb_client, iam_client,
-        elb_name, elb_port, hosts,
-        private_key, pem_certificate, pem_certificate_chain
-    )
-
-    for authz_record in authorizations:
-        logger.emit(
-            "updating-elb.delete-txt-record",
-            elb_name=elb_name, host=authz_record.host
+        add_certificate_to_elb(
+            logger,
+            elb_client, iam_client,
+            elb_name, elb_port, hosts,
+            private_key, pem_certificate, pem_certificate_chain
         )
-        dns_challenge = authz_record.dns_challenge
-        change_txt_record(
-            route53_client,
-            "DELETE",
-            authz_record.route53_zone_id,
-            dns_challenge.validation_domain_name(authz_record.host),
-            dns_challenge.validation(acme_client.key),
-        )
+    finally:
+        for authz_record in authorizations:
+            logger.emit(
+                "updating-elb.delete-txt-record",
+                elb_name=elb_name, host=authz_record.host
+            )
+            dns_challenge = authz_record.dns_challenge
+            change_txt_record(
+                route53_client,
+                "DELETE",
+                authz_record.route53_zone_id,
+                dns_challenge.validation_domain_name(authz_record.host),
+                dns_challenge.validation(acme_client.key),
+            )
 
 
 def update_elbs(logger, acme_client, elb_client, route53_client, iam_client,
