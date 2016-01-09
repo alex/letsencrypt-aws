@@ -145,6 +145,16 @@ def get_expiration_date_for_certificate(iam_client, ssl_certificate_arn):
                 return server_certificate["Expiration"]
 
 
+class AuthorizationRecord(object):
+    def __init__(self, host, authz, dns_challenge, route53_change_id,
+                 route53_zone_id):
+        self.host = host
+        self.authz = authz
+        self.dns_challenge = dns_challenge
+        self.route53_change_id = route53_change_id
+        self.route53_zone_id = route53_zone_id
+
+
 def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
                elb_name, elb_port, hosts):
     logger.emit("updating-elb", elb_name=elb_name)
@@ -176,10 +186,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         authz = acme_client.request_domain_challenges(
             host, new_authz_uri=acme_client.directory.new_authz
         )
-        authorizations.append((host, authz))
 
-    created_records = []
-    for host, authz in authorizations:
         [dns_challenge] = find_dns_challenge(authz)
 
         zone_id = find_zone_id_for_domain(route53_client, host)
@@ -193,34 +200,40 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
             dns_challenge.validation_domain_name(host),
             dns_challenge.validation(acme_client.key),
         )
-        created_records.append((
+        authorizations.append(AuthorizationRecord(
             host,
+            authz,
             dns_challenge,
             change_id,
             zone_id,
         ))
 
-    for host, dns_challenge, change_id, _ in created_records:
+    for authz_record in authorizations:
         logger.emit(
-            "updating-elb.wait-for-route53", elb_name=elb_name, host=host
+            "updating-elb.wait-for-route53",
+            elb_name=elb_name, host=authz_record.host
         )
-        wait_for_route53_change(route53_client, change_id)
+        wait_for_route53_change(route53_client, authz_record.route53_change_id)
 
         response = dns_challenge.response(acme_client.key)
 
         logger.emit(
-            "updating-elb.local-validation", elb_name=elb_name, host=host
+            "updating-elb.local-validation",
+            elb_name=elb_name, host=authz_record.host
         )
         verified = response.simple_verify(
-            dns_challenge.chall, host, acme_client.key.public_key()
+            authz_record.dns_challenge.chall,
+            authz_record.host,
+            acme_client.key.public_key()
         )
         if not verified:
             raise ValueError("Failed verification")
 
         logger.emit(
-            "updating-elb.answer-challenge", elb_name=elb_name, host=host
+            "updating-elb.answer-challenge",
+            elb_name=elb_name, host=authz_record.host
         )
-        acme_client.answer_challenge(dns_challenge, response)
+        acme_client.answer_challenge(authz_record.dns_challenge, response)
 
     logger.emit("updating-elb.request-cert", elb_name=elb_name)
     cert_response, _ = acme_client.poll_and_request_issuance(
@@ -230,7 +243,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
                 csr.public_bytes(serialization.Encoding.DER),
             )
         ),
-        authzrs=[authz for _, authz in authorizations],
+        authzrs=[authz_record.authz for authz_record in authorizations],
     )
     pem_certificate = OpenSSL.crypto.dump_certificate(
         OpenSSL.crypto.FILETYPE_PEM, cert_response.body
@@ -266,15 +279,17 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         LoadBalancerPort=elb_port,
     )
 
-    for host, dns_challenge, _, zone_id in created_records:
+    for authz_record in authorizations:
         logger.emit(
-            "updating-elb.delete-txt-record", elb_name=elb_name, host=host
+            "updating-elb.delete-txt-record",
+            elb_name=elb_name, host=authz_record.host
         )
+        dns_challenge = authz_record.dns_challenge
         change_txt_record(
             route53_client,
             "DELETE",
-            zone_id,
-            dns_challenge.validation_domain_name(host),
+            authz_record.route53_zone_id,
+            dns_challenge.validation_domain_name(authz_record.host),
             dns_challenge.validation(acme_client.key),
         )
 
