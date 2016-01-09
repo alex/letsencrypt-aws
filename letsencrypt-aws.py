@@ -215,7 +215,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         )
         wait_for_route53_change(route53_client, authz_record.route53_change_id)
 
-        response = dns_challenge.response(acme_client.key)
+        response = authz_record.dns_challenge.response(acme_client.key)
 
         logger.emit(
             "updating-elb.local-validation",
