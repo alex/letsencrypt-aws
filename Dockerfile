@@ -3,10 +3,8 @@ FROM python:2.7-slim
 # This can be bumped every time you need to force an apt refresh
 ENV LAST_UPDATE 1
 
-RUN apt-get update
-RUN apt-get upgrade
-RUN apt-get install -y build-essential libffi-dev libssl-dev
-RUN apt-get install -y git
+RUN apt-get update && apt-get upgrade -y
+RUN apt-get install -y build-essential libffi-dev libssl-dev git
 
 WORKDIR /app/
 
