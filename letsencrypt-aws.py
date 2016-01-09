@@ -186,6 +186,35 @@ def start_dns_challenge(logger, acme_client, elb_client, route53_client,
     )
 
 
+def complete_dns_challenge(logger, acme_client, route53_client, elb_name,
+                           authz_record):
+    logger.emit(
+        "updating-elb.wait-for-route53",
+        elb_name=elb_name, host=authz_record.host
+    )
+    wait_for_route53_change(route53_client, authz_record.route53_change_id)
+
+    response = authz_record.dns_challenge.response(acme_client.key)
+
+    logger.emit(
+        "updating-elb.local-validation",
+        elb_name=elb_name, host=authz_record.host
+    )
+    verified = response.simple_verify(
+        authz_record.dns_challenge.chall,
+        authz_record.host,
+        acme_client.key.public_key()
+    )
+    if not verified:
+        raise ValueError("Failed verification")
+
+    logger.emit(
+        "updating-elb.answer-challenge",
+        elb_name=elb_name, host=authz_record.host
+    )
+    acme_client.answer_challenge(authz_record.dns_challenge, response)
+
+
 def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
                elb_name, elb_port, hosts):
     logger.emit("updating-elb", elb_name=elb_name)
@@ -217,31 +246,9 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         authorizations.append(authz_record)
 
     for authz_record in authorizations:
-        logger.emit(
-            "updating-elb.wait-for-route53",
-            elb_name=elb_name, host=authz_record.host
+        complete_dns_challenge(
+            logger, acme_client, route53_client, elb_name, authz_record
         )
-        wait_for_route53_change(route53_client, authz_record.route53_change_id)
-
-        response = authz_record.dns_challenge.response(acme_client.key)
-
-        logger.emit(
-            "updating-elb.local-validation",
-            elb_name=elb_name, host=authz_record.host
-        )
-        verified = response.simple_verify(
-            authz_record.dns_challenge.chall,
-            authz_record.host,
-            acme_client.key.public_key()
-        )
-        if not verified:
-            raise ValueError("Failed verification")
-
-        logger.emit(
-            "updating-elb.answer-challenge",
-            elb_name=elb_name, host=authz_record.host
-        )
-        acme_client.answer_challenge(authz_record.dns_challenge, response)
 
     logger.emit("updating-elb.request-cert", elb_name=elb_name)
     cert_response, _ = acme_client.poll_and_request_issuance(
