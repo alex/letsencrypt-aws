@@ -373,6 +373,7 @@ def acme_client_for_private_key(acme_directory_url, private_key):
 def cli():
     pass
 
+
 @cli.command(name="update-certificates")
 @click.option(
     "--persistent", is_flag=True, help="Runs in a loop, instead of just once."
@@ -420,6 +421,7 @@ def update_certificates(persistent=False):
             logger, acme_client, elb_client, route53_client, iam_client,
             domains
         )
+
 
 @cli.command()
 @click.argument("email")
