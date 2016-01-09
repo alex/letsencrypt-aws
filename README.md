@@ -34,7 +34,7 @@ the ACME server. You can register using:
 
 ```console
 $ # If you're trying to register for a server besides the Let's Encrypt
-$ # production one, see the configuration description below.
+$ # production one, see the configuration documentation below.
 $ python letsencrypt-aws.py register email@host.com
 2016-01-09 19:56:19 [acme-register.generate-key]
 2016-01-09 19:56:20 [acme-register.register] email=u'email@host.com'
