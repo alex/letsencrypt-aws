@@ -155,6 +155,37 @@ class AuthorizationRecord(object):
         self.route53_zone_id = route53_zone_id
 
 
+def start_dns_challenge(logger, acme_client, elb_client, route53_client,
+                        elb_name, host):
+    logger.emit(
+        "updating-elb.request-acme-challenge", elb_name=elb_name, host=host
+    )
+    authz = acme_client.request_domain_challenges(
+        host, new_authz_uri=acme_client.directory.new_authz
+    )
+
+    [dns_challenge] = find_dns_challenge(authz)
+
+    zone_id = find_zone_id_for_domain(route53_client, host)
+    logger.emit(
+        "updating-elb.create-txt-record", elb_name=elb_name, host=host
+    )
+    change_id = change_txt_record(
+        route53_client,
+        "CREATE",
+        zone_id,
+        dns_challenge.validation_domain_name(host),
+        dns_challenge.validation(acme_client.key),
+    )
+    return AuthorizationRecord(
+        host,
+        authz,
+        dns_challenge,
+        change_id,
+        zone_id,
+    )
+
+
 def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
                elb_name, elb_port, hosts):
     logger.emit("updating-elb", elb_name=elb_name)
@@ -180,33 +211,10 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
 
     authorizations = []
     for host in hosts:
-        logger.emit(
-            "updating-elb.request-acme-challenge", elb_name=elb_name, host=host
+        authz_record = start_dns_challenge(
+            logger, acme_client, elb_client, route53_client, elb_name, host
         )
-        authz = acme_client.request_domain_challenges(
-            host, new_authz_uri=acme_client.directory.new_authz
-        )
-
-        [dns_challenge] = find_dns_challenge(authz)
-
-        zone_id = find_zone_id_for_domain(route53_client, host)
-        logger.emit(
-            "updating-elb.create-txt-record", elb_name=elb_name, host=host
-        )
-        change_id = change_txt_record(
-            route53_client,
-            "CREATE",
-            zone_id,
-            dns_challenge.validation_domain_name(host),
-            dns_challenge.validation(acme_client.key),
-        )
-        authorizations.append(AuthorizationRecord(
-            host,
-            authz,
-            dns_challenge,
-            change_id,
-            zone_id,
-        ))
+        authorizations.append(authz_record)
 
     for authz_record in authorizations:
         logger.emit(
