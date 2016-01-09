@@ -236,6 +236,36 @@ def request_certificate(logger, acme_client, elb_name, authorizations, csr):
     return pem_certificate, pem_certificate_chain
 
 
+def add_certificate_to_elb(logger, elb_client, iam_client, elb_name, elb_port,
+                           hosts, private_key, pem_certificate,
+                           pem_certificate_chain):
+    logger.emit("updating-elb.upload-iam-certificate", elb_name=elb_name)
+    response = iam_client.upload_server_certificate(
+        ServerCertificateName=generate_certificate_name(
+            hosts,
+            x509.load_pem_x509_certificate(pem_certificate, default_backend())
+        ),
+        PrivateKey=private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption(),
+        ),
+        CertificateBody=pem_certificate,
+        CertificateChain=pem_certificate_chain,
+    )
+    new_cert_arn = response["ServerCertificateMetadata"]["Arn"]
+
+    # Sleep before trying to set the certificate, it appears to sometimes fail
+    # without this.
+    time.sleep(15)
+    logger.emit("updating-elb.set-elb-certificate", elb_name=elb_name)
+    elb_client.set_load_balancer_listener_ssl_certificate(
+        LoadBalancerName=elb_name,
+        SSLCertificateId=new_cert_arn,
+        LoadBalancerPort=elb_port,
+    )
+
+
 def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
                elb_name, elb_port, hosts):
     logger.emit("updating-elb", elb_name=elb_name)
@@ -275,30 +305,11 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         logger, acme_client, elb_name, authorizations, csr
     )
 
-    logger.emit("updating-elb.upload-iam-certificate", elb_name=elb_name)
-    response = iam_client.upload_server_certificate(
-        ServerCertificateName=generate_certificate_name(
-            hosts,
-            x509.load_pem_x509_certificate(pem_certificate, default_backend())
-        ),
-        PrivateKey=private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption(),
-        ),
-        CertificateBody=pem_certificate,
-        CertificateChain=pem_certificate_chain,
-    )
-    new_cert_arn = response["ServerCertificateMetadata"]["Arn"]
-
-    # Sleep before trying to set the certificate, it appears to sometimes fail
-    # without this.
-    time.sleep(15)
-    logger.emit("updating-elb.set-elb-certificate", elb_name=elb_name)
-    elb_client.set_load_balancer_listener_ssl_certificate(
-        LoadBalancerName=elb_name,
-        SSLCertificateId=new_cert_arn,
-        LoadBalancerPort=elb_port,
+    add_certificate_to_elb(
+        logger,
+        elb_client, iam_client,
+        elb_name, elb_port, hosts,
+        private_key, pem_certificate, pem_certificate_chain
     )
 
     for authz_record in authorizations:
