@@ -359,17 +359,25 @@ def setup_acme_client(s3_client, acme_directory_url, acme_account_key):
     key = serialization.load_pem_private_key(
         key, password=None, backend=default_backend()
     )
+    return acme_client_for_private_key(acme_directory_url, key)
+
+
+def acme_client_for_private_key(acme_directory_url, private_key):
     return acme.client.Client(
         # TODO: support EC keys, when acme.jose does.
-        acme_directory_url, key=acme.jose.JWKRSA(key=key)
+        acme_directory_url, key=acme.jose.JWKRSA(key=private_key)
     )
 
 
-@click.command()
+@click.group()
+def cli():
+    pass
+
+@cli.command(name="update-certificates")
 @click.option(
     "--persistent", is_flag=True, help="Runs in a loop, instead of just once."
 )
-def main(persistent=False):
+def update_certificates(persistent=False):
     logger = Logger()
     logger.emit("startup")
 
@@ -413,6 +421,33 @@ def main(persistent=False):
             domains
         )
 
+@cli.command()
+@click.argument("email")
+def register(email):
+    logger = Logger()
+    config = json.loads(os.environ.get("LETSENCRYPT_AWS_CONFIG", "{}"))
+    acme_directory_url = config.get(
+        "acme_directory_url", DEFAULT_ACME_DIRECTORY_URL
+    )
+
+    logger.emit("acme-register.generate-key")
+    private_key = rsa.generate_private_key(
+        public_exponent=65537, key_size=2048, backend=default_backend()
+    )
+    acme_client = acme_client_for_private_key(acme_directory_url, private_key)
+
+    logger.emit("acme-register.register", email=email)
+    registration = acme_client.register(
+        acme.messages.NewRegistration.from_data(email=email)
+    )
+    logger.emit("acme-register.agree-to-tos")
+    acme_client.agree_to_tos(registration)
+    print(private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    ))
+
 
 if __name__ == "__main__":
-    main()
+    cli()

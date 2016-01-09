@@ -30,9 +30,20 @@ ELBs' certificates will be kept minty fresh.
 ## How to run it
 
 Before you can use `letsencrypt-aws` you need to have created an account with
-the ACME server. Documentation for how to do this is outside the scope of
-`letsencrypt-aws`. You'll need to put the private key somewhere that
-`letsencrypt-aws` can access it (either on the local filesystem or in S3).
+the ACME server. You can register using:
+
+```console
+$ python letsencrypt-aws.py register email@host.com
+2016-01-09 19:56:19 [acme-register.generate-key]
+2016-01-09 19:56:20 [acme-register.register] email=u'email@host.com'
+2016-01-09 19:56:21 [acme-register.agree-to-tos]
+-----BEGIN RSA PRIVATE KEY-----
+[...]
+-----END RSA PRIVATE KEY-----
+```
+
+You'll need to put the private key somewhere that `letsencrypt-aws` can access
+it (either on the local filesystem or in S3).
 
 You will also need to have your AWS credentials configured. You can use any of
 the [mechanisms documented by
@@ -64,7 +75,7 @@ To specify a local file you provide `"file:///path/to/key.pem"`, for S3 provide
 `"s3://bucket-nam/object-name"`. The key should be a PEM formatted RSA private
 key.
 
-Then you can simply run it: `python letsencrypt-aws.py`.
+Then you can simply run it: `python letsencrypt-aws.py update-certificates`.
 
 If you add the `--persistent` flag it will run forever, rather than just once.
 This is useful for production environments.

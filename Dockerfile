@@ -15,4 +15,4 @@ COPY letsencrypt-aws.py ./
 
 USER nobody
 
-ENTRYPOINT [".venv/bin/python", "letsencrypt-aws.py"]
+ENTRYPOINT [".venv/bin/python", "letsencrypt-aws.py", "update-certificates"]
