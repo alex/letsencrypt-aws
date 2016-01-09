@@ -359,9 +359,13 @@ def setup_acme_client(s3_client, acme_directory_url, acme_account_key):
     key = serialization.load_pem_private_key(
         key, password=None, backend=default_backend()
     )
+    return acme_client_for_private_key(acme_directory_url, key)
+
+
+def acme_client_for_private_key(acme_directory_url, private_key):
     return acme.client.Client(
         # TODO: support EC keys, when acme.jose does.
-        acme_directory_url, key=acme.jose.JWKRSA(key=key)
+        acme_directory_url, key=acme.jose.JWKRSA(key=private_key)
     )
 
 
