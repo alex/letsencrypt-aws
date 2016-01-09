@@ -215,6 +215,27 @@ def complete_dns_challenge(logger, acme_client, route53_client, elb_name,
     acme_client.answer_challenge(authz_record.dns_challenge, response)
 
 
+def request_certificate(logger, acme_client, elb_name, authorizations, csr):
+    logger.emit("updating-elb.request-cert", elb_name=elb_name)
+    cert_response, _ = acme_client.poll_and_request_issuance(
+        acme.jose.util.ComparableX509(
+            OpenSSL.crypto.load_certificate_request(
+                OpenSSL.crypto.FILETYPE_ASN1,
+                csr.public_bytes(serialization.Encoding.DER),
+            )
+        ),
+        authzrs=[authz_record.authz for authz_record in authorizations],
+    )
+    pem_certificate = OpenSSL.crypto.dump_certificate(
+        OpenSSL.crypto.FILETYPE_PEM, cert_response.body
+    )
+    pem_certificate_chain = "\n".join(
+        OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+        for cert in acme_client.fetch_chain(cert_response)
+    )
+    return pem_certificate, pem_certificate_chain
+
+
 def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
                elb_name, elb_port, hosts):
     logger.emit("updating-elb", elb_name=elb_name)
@@ -250,22 +271,8 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
             logger, acme_client, route53_client, elb_name, authz_record
         )
 
-    logger.emit("updating-elb.request-cert", elb_name=elb_name)
-    cert_response, _ = acme_client.poll_and_request_issuance(
-        acme.jose.util.ComparableX509(
-            OpenSSL.crypto.load_certificate_request(
-                OpenSSL.crypto.FILETYPE_ASN1,
-                csr.public_bytes(serialization.Encoding.DER),
-            )
-        ),
-        authzrs=[authz_record.authz for authz_record in authorizations],
-    )
-    pem_certificate = OpenSSL.crypto.dump_certificate(
-        OpenSSL.crypto.FILETYPE_PEM, cert_response.body
-    )
-    pem_certificate_chain = "\n".join(
-        OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
-        for cert in acme_client.fetch_chain(cert_response)
+    pem_certificate, pem_certificate_chain = request_certificate(
+        logger, acme_client, elb_name, authorizations, csr
     )
 
     logger.emit("updating-elb.upload-iam-certificate", elb_name=elb_name)
