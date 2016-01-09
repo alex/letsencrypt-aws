@@ -17,4 +17,4 @@ COPY letsencrypt-aws.py .
 
 USER nobody
 
-CMD .venv/bin/python letsencrypt-aws.py
+CMD [".venv/bin/python", "letsencrypt-aws.py"]
