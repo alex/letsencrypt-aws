@@ -369,11 +369,16 @@ def acme_client_for_private_key(acme_directory_url, private_key):
     )
 
 
-@click.command()
+@click.group()
+def cli():
+    pass
+
+
+@cli.command(name="update-certificates")
 @click.option(
     "--persistent", is_flag=True, help="Runs in a loop, instead of just once."
 )
-def main(persistent=False):
+def update_certificates(persistent=False):
     logger = Logger()
     logger.emit("startup")
 
@@ -419,4 +424,4 @@ def main(persistent=False):
 
 
 if __name__ == "__main__":
-    main()
+    cli()

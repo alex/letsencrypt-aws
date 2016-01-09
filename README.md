@@ -64,7 +64,7 @@ To specify a local file you provide `"file:///path/to/key.pem"`, for S3 provide
 `"s3://bucket-nam/object-name"`. The key should be a PEM formatted RSA private
 key.
 
-Then you can simply run it: `python letsencrypt-aws.py`.
+Then you can simply run it: `python letsencrypt-aws.py update-certificates`.
 
 If you add the `--persistent` flag it will run forever, rather than just once.
 This is useful for production environments.
