@@ -327,6 +327,7 @@ def setup_acme_client(s3_client, acme_directory_url, acme_account_key):
         key, password=None, backend=default_backend()
     )
     return acme.client.Client(
+        # TODO: support EC keys, when acme.jose does.
         acme_directory_url, key=acme.jose.JWKRSA(key=key)
     )
 
