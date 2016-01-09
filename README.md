@@ -33,6 +33,8 @@ Before you can use `letsencrypt-aws` you need to have created an account with
 the ACME server. You can register using:
 
 ```console
+$ # If you're trying to register for a server besides the Let's Encrypt
+$ # production one, see the configuration description below.
 $ python letsencrypt-aws.py register email@host.com
 2016-01-09 19:56:19 [acme-register.generate-key]
 2016-01-09 19:56:20 [acme-register.register] email=u'email@host.com'
@@ -55,19 +57,19 @@ use IAM instance profiles (which are supported, but not mentioned by the
 environment variable. This should be a JSON object with the following schema:
 
 ```json
-    {
-        "domains": [
-            {
-                "elb": {
-                    "name": "ELB name (string)",
-                    "port": "optional, defaults to 443 (integer)"
-                },
-                "hosts": ["list of hosts you want on the certificate (strings)"]
-            }
-        ],
-        "acme_account_key": "location of the account private key (string)",
-        "acme_directory_url": "optional, defaults to Let's Encrypt production (string)"
-    }
+{
+    "domains": [
+        {
+            "elb": {
+                "name": "ELB name (string)",
+                "port": "optional, defaults to 443 (integer)"
+            },
+            "hosts": ["list of hosts you want on the certificate (strings)"]
+        }
+    ],
+    "acme_account_key": "location of the account private key (string)",
+    "acme_directory_url": "optional, defaults to Let's Encrypt production (string)"
+}
 ```
 
 The `acme_account_key` can either be located on the local filesystem or in S3.
