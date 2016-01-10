@@ -30,7 +30,8 @@ ELBs' certificates will be kept minty fresh.
 ## How to run it
 
 Before you can use `letsencrypt-aws` you need to have created an account with
-the ACME server. You can register using:
+the ACME server. You can register using (if you already have an account you can
+skip this step):
 
 ```console
 $ # If you're trying to register for a server besides the Let's Encrypt
