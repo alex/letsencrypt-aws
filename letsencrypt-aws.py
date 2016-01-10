@@ -427,5 +427,37 @@ def update_certificates(persistent=False):
         )
 
 
+@cli.command()
+@click.argument("email")
+@click.option(
+    "--out",
+    type=click.File("w"),
+    default="-",
+    help="Where to write the private key to. Defaults to stdout."
+)
+def register(email, out):
+    logger = Logger()
+    config = json.loads(os.environ.get("LETSENCRYPT_AWS_CONFIG", "{}"))
+    acme_directory_url = config.get(
+        "acme_directory_url", DEFAULT_ACME_DIRECTORY_URL
+    )
+
+    logger.emit("acme-register.generate-key")
+    private_key = generate_rsa_private_key()
+    acme_client = acme_client_for_private_key(acme_directory_url, private_key)
+
+    logger.emit("acme-register.register", email=email)
+    registration = acme_client.register(
+        acme.messages.NewRegistration.from_data(email=email)
+    )
+    logger.emit("acme-register.agree-to-tos")
+    acme_client.agree_to_tos(registration)
+    out.write(private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    ))
+
+
 if __name__ == "__main__":
     cli()
