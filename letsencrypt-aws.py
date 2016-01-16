@@ -125,7 +125,7 @@ def generate_certificate_name(hosts, cert):
     return "{hosts}-{expiration}-{serial}".format(
         hosts="-".join(h.replace(".", "_") for h in hosts),
         expiration=cert.not_valid_after.date(),
-        uuid=cert.serial,
+        serial=cert.serial,
     )
 
 
