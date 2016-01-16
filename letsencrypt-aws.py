@@ -13,7 +13,7 @@ import click
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 
 import boto3
 
@@ -48,6 +48,10 @@ def generate_rsa_private_key():
     return rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
+
+
+def generate_ecdsa_private_key():
+    return ec.generate_private_key(ec.SECP256R1(), backend=default_backend())
 
 
 def generate_csr(private_key, hosts):
@@ -272,7 +276,7 @@ def add_certificate_to_elb(logger, elb_client, iam_client, elb_name, elb_port,
 
 
 def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
-               elb_name, elb_port, hosts):
+               elb_name, elb_port, hosts, key_type):
     logger.emit("updating-elb", elb_name=elb_name)
     certificate_id = get_load_balancer_certificate(
         elb_client, elb_name, elb_port
@@ -289,7 +293,12 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     if days_until_expiration > CERTIFICATE_EXPIRATION_THRESHOLD:
         return
 
-    private_key = generate_rsa_private_key()
+    if key_type == "rsa":
+        private_key = generate_rsa_private_key()
+    elif key_type == "ecdsa":
+        private_key = generate_ecdsa_private_key()
+    else:
+        raise ValueError("Invalid key_type: {!r}".format(key_type))
     csr = generate_csr(private_key, hosts)
 
     authorizations = []
@@ -342,7 +351,8 @@ def update_elbs(logger, acme_client, elb_client, route53_client, iam_client,
             iam_client,
             domain["elb"]["name"],
             domain["elb"].get("port", 443),
-            domain["hosts"]
+            domain["hosts"],
+            domain.get("key_type", "rsa")
         )
 
 

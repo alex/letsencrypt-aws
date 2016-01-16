@@ -65,7 +65,8 @@ environment variable. This should be a JSON object with the following schema:
                 "name": "ELB name (string)",
                 "port": "optional, defaults to 443 (integer)"
             },
-            "hosts": ["list of hosts you want on the certificate (strings)"]
+            "hosts": ["list of hosts you want on the certificate (strings)"],
+            "key_type": "rsa or ecdsa, optional, defaults to rsa (string)"
         }
     ],
     "acme_account_key": "location of the account private key (string)",
