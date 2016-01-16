@@ -272,7 +272,7 @@ def add_certificate_to_elb(logger, elb_client, iam_client, elb_name, elb_port,
 
 
 def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
-               elb_name, elb_port, hosts):
+               force_issue, elb_name, elb_port, hosts):
     logger.emit("updating-elb", elb_name=elb_name)
     certificate_id = get_load_balancer_certificate(
         elb_client, elb_name, elb_port
@@ -286,7 +286,10 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
         elb_name=elb_name, expiration_date=expiration_date
     )
     days_until_expiration = expiration_date - datetime.date.today()
-    if days_until_expiration > CERTIFICATE_EXPIRATION_THRESHOLD:
+    if (
+        days_until_expiration > CERTIFICATE_EXPIRATION_THRESHOLD and
+        not force_issue
+    ):
         return
 
     private_key = generate_rsa_private_key()
@@ -332,7 +335,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
 
 
 def update_elbs(logger, acme_client, elb_client, route53_client, iam_client,
-                domains):
+                force_issue, domains):
     for domain in domains:
         update_elb(
             logger,
@@ -340,6 +343,7 @@ def update_elbs(logger, acme_client, elb_client, route53_client, iam_client,
             elb_client,
             route53_client,
             iam_client,
+            force_issue,
             domain["elb"]["name"],
             domain["elb"].get("port", 443),
             domain["hosts"]
@@ -382,9 +386,18 @@ def cli():
 @click.option(
     "--persistent", is_flag=True, help="Runs in a loop, instead of just once."
 )
-def update_certificates(persistent=False):
+@click.option(
+    "--force-issue", is_flag=True, help=(
+        "Issue a new certificate, even if the old one isn't close to "
+        "expiration."
+    )
+)
+def update_certificates(persistent=False, force_issue=False):
     logger = Logger()
     logger.emit("startup")
+
+    if persistent and force_issue:
+        raise ValueError("Can't specify both --persistent and --force-issue")
 
     session = boto3.Session()
     s3_client = session.client("s3")
@@ -414,7 +427,7 @@ def update_certificates(persistent=False):
         while True:
             update_elbs(
                 logger, acme_client, elb_client, route53_client, iam_client,
-                domains
+                force_issue, domains
             )
             # Sleep before we check again
             logger.emit("sleeping", duration=PERSISTENT_SLEEP_INTERVAL)
@@ -423,7 +436,7 @@ def update_certificates(persistent=False):
         logger.emit("running", mode="single")
         update_elbs(
             logger, acme_client, elb_client, route53_client, iam_client,
-            domains
+            force_issue, domains
         )
 
 
