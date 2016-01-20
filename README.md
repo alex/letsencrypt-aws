@@ -4,14 +4,6 @@
 automatically provisions and updates certificates on your AWS infrastructure
 using the AWS APIs and Let's Encrypt.
 
-## Status
-
-**This is currently in development. It will not be usable until Let's Encrypt
-officially launches DNS challenges.**
-
-This is able to issue certificates in Let's Encrypt's staging environment, DNS
-challenges are not available in production yet.
-
 ## How it works
 
 `letsencrypt-aws` takes a list of ELBs, and which hosts you want them to be
