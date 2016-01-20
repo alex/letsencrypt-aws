@@ -115,3 +115,49 @@ If your `acme_account_key` is provided as an `s3://` URI you will also need:
 
 It's likely possible to restrict these permissions by ARN, though this has not
 been fully explored.
+
+An example IAM policy is:
+
+``json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Action": [
+                "route53:ChangeResourceRecordSets",
+                "route53:GetChange",
+                "route53:GetChangeDetails",
+                "route53:ListHostedZones"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Action": [
+                "elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:SetLoadBalancerListenerSSLCertificate"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetServerCertificate",
+                "iam:ListServerCertificates",
+                "iam:UploadServerCertificate"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}
+```
