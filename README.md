@@ -118,7 +118,7 @@ been fully explored.
 
 An example IAM policy is:
 
-``json
+```json
 {
     "Version": "2012-10-17",
     "Statement": [
