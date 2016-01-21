@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y build-essential libffi-dev libssl-dev g
 
 WORKDIR /app/
 
+RUN python -m pip install virtualenv
 RUN python -m virtualenv .venv
 COPY requirements.txt ./
 RUN .venv/bin/pip install -r requirements.txt
