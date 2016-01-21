@@ -150,7 +150,6 @@ An example IAM policy is:
             "Sid": "",
             "Effect": "Allow",
             "Action": [
-                "iam:GetServerCertificate",
                 "iam:ListServerCertificates",
                 "iam:UploadServerCertificate"
             ],
