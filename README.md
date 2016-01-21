@@ -73,8 +73,9 @@ key.
 
 Then you can simply run it: `python letsencrypt-aws.py update-certificates`.
 
-If you add the `--persistent` flag it will run forever, rather than just once.
-This is useful for production environments.
+If you add the `--persistent` flag it will run forever, rather than just once,
+sleeping for 24 hours between each check for certificate expiration. This is
+useful for production environments.
 
 If you're into [Docker](https://www.docker.com/), there is an automatically
 built image of `letsencrypt-aws` available as
