@@ -77,6 +77,9 @@ If you add the `--persistent` flag it will run forever, rather than just once,
 sleeping for 24 hours between each check for certificate expiration. This is
 useful for production environments.
 
+If your certificate is not expiring soon, but you need to issue a new one
+anyways, the `--force-issue` flag can be provided.
+
 If you're into [Docker](https://www.docker.com/), there is an automatically
 built image of `letsencrypt-aws` available as
 [`alexgaynor/letsencrypt-aws`](https://hub.docker.com/r/alexgaynor/letsencrypt-aws/).
