@@ -126,11 +126,11 @@ def change_txt_record(route53_client, action, zone_id, domain, value):
 
 
 def generate_certificate_name(hosts, cert):
-    return "{hosts}-{expiration}-{serial}".format(
-        hosts="-".join(h.replace(".", "_") for h in hosts),
-        expiration=cert.not_valid_after.date(),
+    return "{serial}-{expiration}-{hosts}".format(
         serial=cert.serial,
-    )
+        expiration=cert.not_valid_after.date(),
+        hosts="-".join(h.replace(".", "_") for h in hosts),
+    )[:128]
 
 
 def get_load_balancer_certificate(elb_client, elb_name, elb_port):
