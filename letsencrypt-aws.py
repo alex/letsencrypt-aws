@@ -170,7 +170,7 @@ def start_dns_challenge(logger, acme_client, elb_client, route53_client,
         "updating-elb.request-acme-challenge", elb_name=elb_name, host=host
     )
     authz = acme_client.request_domain_challenges(
-        host, new_authz_uri=acme_client.directory.new_authz
+        host, acme_client.directory.new_authz
     )
 
     [dns_challenge] = find_dns_challenge(authz)
