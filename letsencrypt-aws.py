@@ -116,8 +116,21 @@ class Route53ChallengeCompleter(object):
     def __init__(self, route53_client):
         self.route53_client = route53_client
 
+    def _find_zone_id_for_domain(self, domain):
+        paginator = self.route53_client.get_paginator("list_hosted_zones")
+        for page in paginator.paginate():
+            for zone in page["HostedZones"]:
+                # This assumes that zones are returned sorted by specificity,
+                # meaning in the following order:
+                # ["foo.bar.baz.com", "bar.baz.com", "baz.com", "com"]
+                if (
+                    domain.endswith(zone["Name"]) or
+                    (domain + ".").endswith(zone["Name"])
+                ):
+                    return zone["Id"]
+
     def create_txt_record(self, host, value):
-        zone_id = find_zone_id_for_domain(self.route53_client, host)
+        zone_id = self._find_zone_id_for_domain(host)
         change_id = change_txt_record(
             self.route53_client,
             "CREATE",
@@ -139,7 +152,12 @@ class Route53ChallengeCompleter(object):
 
     def wait_for_change(self, change_id):
         _, change_id = change_id
-        wait_for_route53_change(self.route53_client, change_id)
+
+        while True:
+            response = self.route53_client.get_change(Id=change_id)
+            if response["ChangeInfo"]["Status"] == "INSYNC":
+                return
+            time.sleep(5)
 
 
 def generate_rsa_private_key():
@@ -176,27 +194,6 @@ def find_dns_challenge(authz):
             isinstance(combo[0].chall, acme.challenges.DNS01)
         ):
             yield combo[0]
-
-
-def find_zone_id_for_domain(route53_client, domain):
-    for page in route53_client.get_paginator("list_hosted_zones").paginate():
-        for zone in page["HostedZones"]:
-            # This assumes that zones are returned sorted by specificity,
-            # meaning in the following order:
-            # ["foo.bar.baz.com", "bar.baz.com", "baz.com", "com"]
-            if (
-                domain.endswith(zone["Name"]) or
-                (domain + ".").endswith(zone["Name"])
-            ):
-                return zone["Id"]
-
-
-def wait_for_route53_change(route53_client, change_id):
-    while True:
-        response = route53_client.get_change(Id=change_id)
-        if response["ChangeInfo"]["Status"] == "INSYNC":
-            return
-        time.sleep(5)
 
 
 def change_txt_record(route53_client, action, zone_id, domain, value):
