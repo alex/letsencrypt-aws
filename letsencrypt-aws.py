@@ -44,6 +44,14 @@ class Logger(object):
         ))
 
 
+class CertificateRequest(object):
+    def __init__(self, elb_name, elb_port, hosts, key_type):
+        self.elb_name = elb_name
+        self.elb_port = elb_port
+        self.hosts = hosts
+        self.key_type = key_type
+
+
 def generate_rsa_private_key():
     return rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
@@ -276,10 +284,10 @@ def add_certificate_to_elb(logger, elb_client, iam_client, elb_name, elb_port,
 
 
 def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
-               force_issue, elb_name, elb_port, hosts, key_type):
-    logger.emit("updating-elb", elb_name=elb_name)
+               force_issue, cert_request):
+    logger.emit("updating-elb", elb_name=cert_request.elb_name)
     certificate_id = get_load_balancer_certificate(
-        elb_client, elb_name, elb_port
+        elb_client, cert_request.elb_name, cert_request.elb_port
     )
 
     expiration_date = get_expiration_date_for_certificate(
@@ -287,7 +295,7 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     ).date()
     logger.emit(
         "updating-elb.certificate-expiration",
-        elb_name=elb_name, expiration_date=expiration_date
+        elb_name=cert_request.elb_name, expiration_date=expiration_date
     )
     days_until_expiration = expiration_date - datetime.date.today()
     if (
@@ -296,42 +304,46 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
     ):
         return
 
-    if key_type == "rsa":
+    if cert_request.key_type == "rsa":
         private_key = generate_rsa_private_key()
-    elif key_type == "ecdsa":
+    elif cert_request.key_type == "ecdsa":
         private_key = generate_ecdsa_private_key()
     else:
-        raise ValueError("Invalid key_type: {!r}".format(key_type))
-    csr = generate_csr(private_key, hosts)
+        raise ValueError(
+            "Invalid key_type: {!r}".format(cert_request.key_type)
+        )
+    csr = generate_csr(private_key, cert_request.hosts)
 
     authorizations = []
     try:
-        for host in hosts:
+        for host in cert_request.hosts:
             authz_record = start_dns_challenge(
-                logger, acme_client, elb_client, route53_client, elb_name, host
+                logger, acme_client, elb_client, route53_client,
+                cert_request.elb_name, host,
             )
             authorizations.append(authz_record)
 
         for authz_record in authorizations:
             complete_dns_challenge(
-                logger, acme_client, route53_client, elb_name, authz_record
+                logger, acme_client, route53_client,
+                cert_request.elb_name, authz_record
             )
 
         pem_certificate, pem_certificate_chain = request_certificate(
-            logger, acme_client, elb_name, authorizations, csr
+            logger, acme_client, cert_request.elb_name, authorizations, csr
         )
 
         add_certificate_to_elb(
             logger,
             elb_client, iam_client,
-            elb_name, elb_port, hosts,
+            cert_request.elb_name, cert_request.elb_port, cert_request.hosts,
             private_key, pem_certificate, pem_certificate_chain
         )
     finally:
         for authz_record in authorizations:
             logger.emit(
                 "updating-elb.delete-txt-record",
-                elb_name=elb_name, host=authz_record.host
+                elb_name=cert_request.elb_name, host=authz_record.host
             )
             dns_challenge = authz_record.dns_challenge
             change_txt_record(
@@ -344,8 +356,8 @@ def update_elb(logger, acme_client, elb_client, route53_client, iam_client,
 
 
 def update_elbs(logger, acme_client, elb_client, route53_client, iam_client,
-                force_issue, domains):
-    for domain in domains:
+                force_issue, certificate_requests):
+    for cert_request in certificate_requests:
         update_elb(
             logger,
             acme_client,
@@ -353,10 +365,7 @@ def update_elbs(logger, acme_client, elb_client, route53_client, iam_client,
             route53_client,
             iam_client,
             force_issue,
-            domain["elb"]["name"],
-            domain["elb"].get("port", 443),
-            domain["hosts"],
-            domain.get("key_type", "rsa")
+            cert_request,
         )
 
 
@@ -432,12 +441,21 @@ def update_certificates(persistent=False, force_issue=False):
         s3_client, acme_directory_url, acme_account_key
     )
 
+    certificate_requests = []
+    for domain in domains:
+        certificate_requests.append(CertificateRequest(
+            domain["elb"]["name"],
+            domain["elb"].get("port", 443),
+            domain["hosts"],
+            domain.get("key_type", "rsa"),
+        ))
+
     if persistent:
         logger.emit("running", mode="persistent")
         while True:
             update_elbs(
                 logger, acme_client, elb_client, route53_client, iam_client,
-                force_issue, domains
+                force_issue, certificate_requests
             )
             # Sleep before we check again
             logger.emit("sleeping", duration=PERSISTENT_SLEEP_INTERVAL)
@@ -446,7 +464,7 @@ def update_certificates(persistent=False, force_issue=False):
         logger.emit("running", mode="single")
         update_elbs(
             logger, acme_client, elb_client, route53_client, iam_client,
-            force_issue, domains
+            force_issue, certificate_requests
         )
 
 
