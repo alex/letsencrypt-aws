@@ -129,10 +129,32 @@ class Route53ChallengeCompleter(object):
                 ):
                     return zone["Id"]
 
+    def _change_txt_record(self, action, zone_id, domain, value):
+        response = self.route53_client.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": action,
+                        "ResourceRecordSet": {
+                            "Name": domain,
+                            "Type": "TXT",
+                            "TTL": DNS_TTL,
+                            "ResourceRecords": [
+                                # For some reason TXT records need to be
+                                # manually quoted.
+                                {"Value": '"{}"'.format(value)}
+                            ],
+                        }
+                    }
+                ]
+            }
+        )
+        return response["ChangeInfo"]["Id"]
+
     def create_txt_record(self, host, value):
         zone_id = self._find_zone_id_for_domain(host)
-        change_id = change_txt_record(
-            self.route53_client,
+        change_id = self._change_txt_record(
             "CREATE",
             zone_id,
             host,
@@ -142,8 +164,7 @@ class Route53ChallengeCompleter(object):
 
     def delete_txt_record(self, change_id, host, value):
         zone_id, _ = change_id
-        change_txt_record(
-            self.route53_client,
+        self._change_txt_record(
             "DELETE",
             zone_id,
             host,
@@ -194,30 +215,6 @@ def find_dns_challenge(authz):
             isinstance(combo[0].chall, acme.challenges.DNS01)
         ):
             yield combo[0]
-
-
-def change_txt_record(route53_client, action, zone_id, domain, value):
-    response = route53_client.change_resource_record_sets(
-        HostedZoneId=zone_id,
-        ChangeBatch={
-            "Changes": [
-                {
-                    "Action": action,
-                    "ResourceRecordSet": {
-                        "Name": domain,
-                        "Type": "TXT",
-                        "TTL": DNS_TTL,
-                        "ResourceRecords": [
-                            # For some reason TXT records need to be manually
-                            # quoted.
-                            {"Value": '"{}"'.format(value)}
-                        ],
-                    }
-                }
-            ]
-        }
-    )
-    return response["ChangeInfo"]["Id"]
 
 
 def generate_certificate_name(hosts, cert):
