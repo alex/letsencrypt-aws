@@ -462,7 +462,7 @@ def update_certificates(persistent=False, force_issue=False):
         certificate_requests.append(CertificateRequest(
             ELBCertificate(
                 elb_client, iam_client,
-                int(domain["elb"]["name"], domain["elb"].get("port", 443))
+                domain["elb"]["name"], int(domain["elb"].get("port", 443))
             ),
             Route53ChallengeCompleter(route53_client),
             domain["hosts"],
