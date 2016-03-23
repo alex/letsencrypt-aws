@@ -128,6 +128,9 @@ class Route53ChallengeCompleter(object):
                     (domain + ".").endswith(zone["Name"])
                 ):
                     return zone["Id"]
+        raise ValueError(
+            "Unable to find a Route53 hosted zone for {}".format(domain)
+        )
 
     def _change_txt_record(self, action, zone_id, domain, value):
         response = self.route53_client.change_resource_record_sets(
