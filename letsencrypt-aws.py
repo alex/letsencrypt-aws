@@ -139,7 +139,6 @@ class Route53ChallengeCompleter(object):
         zones.sort(key=lambda z: len(z[0]), reverse=True)
         return zones[0][1]
 
-
     def _change_txt_record(self, action, zone_id, domain, value):
         response = self.route53_client.change_resource_record_sets(
             HostedZoneId=zone_id,
