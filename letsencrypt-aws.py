@@ -118,19 +118,27 @@ class Route53ChallengeCompleter(object):
 
     def _find_zone_id_for_domain(self, domain):
         paginator = self.route53_client.get_paginator("list_hosted_zones")
+        zones = []
         for page in paginator.paginate():
             for zone in page["HostedZones"]:
-                # This assumes that zones are returned sorted by specificity,
-                # meaning in the following order:
-                # ["foo.bar.baz.com", "bar.baz.com", "baz.com", "com"]
                 if (
                     domain.endswith(zone["Name"]) or
                     (domain + ".").endswith(zone["Name"])
                 ):
-                    return zone["Id"]
-        raise ValueError(
-            "Unable to find a Route53 hosted zone for {}".format(domain)
-        )
+                    zones.append((zone["Name"], zone["Id"]))
+
+        if not zones:
+            raise ValueError(
+                "Unable to find a Route53 hosted zone for {}".format(domain)
+            )
+
+        # Order the zones that are suffixes for our desired to domain by
+        # length, this puts them in an order like:
+        # ["foo.bar.baz.com", "bar.baz.com", "baz.com", "com"]
+        # And then we choose the last one, which will be the most specific.
+        zones.sort(key=lambda z: len(z[0]), reverse=True)
+        return zones[0][1]
+
 
     def _change_txt_record(self, action, zone_id, domain, value):
         response = self.route53_client.change_resource_record_sets(
