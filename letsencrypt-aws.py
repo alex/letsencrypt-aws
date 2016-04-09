@@ -54,6 +54,34 @@ class CertificateRequest(object):
         self.key_type = key_type
 
 
+def _expiration_date_for_iam_certificate(iam_client, certificate_id):
+    paginator = iam_client.get_paginator("list_server_certificates")
+    for page in paginator.paginate():
+        for server_certificate in page["ServerCertificateMetadataList"]:
+            if server_certificate["Arn"] == certificate_id:
+                return server_certificate["Expiration"].date()
+
+
+def _upload_iam_certificate(iam_client, hosts, private_key, pem_certificate,
+                            pem_certificate_chain):
+    response = iam_client.upload_server_certificate(
+        ServerCertificateName=generate_certificate_name(
+            hosts,
+            x509.load_pem_x509_certificate(
+                pem_certificate, default_backend()
+            )
+        ),
+        PrivateKey=private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption(),
+        ),
+        CertificateBody=pem_certificate,
+        CertificateChain=pem_certificate_chain,
+    )
+    return response["ServerCertificateMetadata"]["Arn"]
+
+
 class ELBCertificate(object):
     def __init__(self, elb_client, iam_client, elb_name, elb_port):
         self.elb_client = elb_client
@@ -72,11 +100,9 @@ class ELBCertificate(object):
             if listener["Listener"]["LoadBalancerPort"] == self.elb_port
         ]
 
-        paginator = self.iam_client.get_paginator("list_server_certificates")
-        for page in paginator.paginate():
-            for server_certificate in page["ServerCertificateMetadataList"]:
-                if server_certificate["Arn"] == certificate_id:
-                    return server_certificate["Expiration"].date()
+        return _expiration_date_for_iam_certificate(
+            self.iam_client, certificate_id
+        )
 
     def update_certificate(self, logger, hosts, private_key, pem_certificate,
                            pem_certificate_chain):
@@ -84,22 +110,10 @@ class ELBCertificate(object):
             "updating-elb.upload-iam-certificate", elb_name=self.elb_name
         )
 
-        response = self.iam_client.upload_server_certificate(
-            ServerCertificateName=generate_certificate_name(
-                hosts,
-                x509.load_pem_x509_certificate(
-                    pem_certificate, default_backend()
-                )
-            ),
-            PrivateKey=private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.NoEncryption(),
-            ),
-            CertificateBody=pem_certificate,
-            CertificateChain=pem_certificate_chain,
+        new_cert_arn = _upload_iam_certificate(
+            self.iam_client,
+            hosts, private_key, pem_certificate, pem_certificate_chain
         )
-        new_cert_arn = response["ServerCertificateMetadata"]["Arn"]
 
         # Sleep before trying to set the certificate, it appears to sometimes
         # fail without this.
@@ -110,6 +124,46 @@ class ELBCertificate(object):
             SSLCertificateId=new_cert_arn,
             LoadBalancerPort=self.elb_port,
         )
+
+
+class CloudFrontCertificate(object):
+    def __init__(self, cloudfront_client, iam_client, distribution_id):
+        self.cloudfront_client = cloudfront_client
+        self.iam_client = iam_client
+        self.distribution_id = distribution_id
+
+    def get_expiration_date(self):
+        response = self.cloudfront_client.get_distribution_config(
+            Id=self.distribution_id
+        )
+        cert = response["DistributionConfig"]["ViewerCertificate"]
+        # If the cert is of a different type then we don't have code to check
+        # for it, annoying.
+        assert cert.get("IAMCertificateId")
+        return _expiration_date_for_iam_certificate(
+            self.iam_client, cert["IAMCertificateId"]
+        )
+
+    def update_certificate(self, logger, hosts, private_key, pem_certificate,
+                           pem_certificate_chain):
+        logger.emit("upload-iam-certificate")
+        new_cert_arn = _upload_iam_certificate(
+            self.iam_client,
+            hosts, private_key, pem_certificate, pem_certificate_chain
+        )
+
+        # Sleep before trying to set the certificate, it appears to sometimes
+        # fail without this.
+        time.sleep(15)
+
+        config = self.cloudfront_client.get_distribution_config(
+            Id=self.distribution_id
+        )
+        cert = config["DistributionConfig"]["ViewerCertificate"]
+        cert["IAMCertificateId"] = new_cert_arn
+
+        logger.emit("set-cloudfront-distribution-certificate")
+        self.cloudfront_client.update_distribution(DistributionConfig=config)
 
 
 class Route53ChallengeCompleter(object):
@@ -445,18 +499,12 @@ def update_certificates(persistent=False, force_issue=False):
         raise ValueError("Can't specify both --persistent and --force-issue")
 
     session = boto3.Session()
-    s3_client = session.client("s3")
-    elb_client = session.client("elb")
     route53_client = session.client("route53")
+    s3_client = session.client("s3")
     iam_client = session.client("iam")
+    elb_client = session.client("elb")
+    cloudfront_client = session.client("cloudfront")
 
-    # Structure: {
-    #     "domains": [
-    #         {"elb": {"name" "...", "port" 443}, hosts: ["..."]}
-    #     ],
-    #     "acme_account_key": "s3://bucket/object",
-    #     "acme_directory_url": "(optional)"
-    # }
     config = json.loads(os.environ["LETSENCRYPT_AWS_CONFIG"])
     domains = config["domains"]
     acme_directory_url = config.get(
@@ -469,11 +517,23 @@ def update_certificates(persistent=False, force_issue=False):
 
     certificate_requests = []
     for domain in domains:
-        certificate_requests.append(CertificateRequest(
-            ELBCertificate(
+        if "elb" in domain:
+            cert_location = ELBCertificate(
                 elb_client, iam_client,
                 domain["elb"]["name"], int(domain["elb"].get("port", 443))
-            ),
+            )
+        elif "cloudfront" in domain:
+            cert_location = CloudFrontCertificate(
+                cloudfront_client, iam_client,
+                domain["cloudfront"]["id"],
+            )
+        else:
+            raise ValueError(
+                "Unknown certificate location: {!r}".format(domain)
+            )
+
+        certificate_requests.append(CertificateRequest(
+            cert_location,
             Route53ChallengeCompleter(route53_client),
             domain["hosts"],
             domain.get("key_type", "rsa"),

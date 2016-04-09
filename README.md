@@ -59,6 +59,13 @@ environment variable. This should be a JSON object with the following schema:
             },
             "hosts": ["list of hosts you want on the certificate (strings)"],
             "key_type": "rsa or ecdsa, optional, defaults to rsa (string)"
+        },
+        {
+            "cloudfront": {
+                "id": "CloudFront distribution ID (string)"
+            },
+            "hosts": ["list of hosts you want on the certificate (strings)"],
+            "key_type": "rsa or ecdsa, optional, defaults to rsa (string)"
         }
     ],
     "acme_account_key": "location of the account private key (string)",
