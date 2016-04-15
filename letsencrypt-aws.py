@@ -61,7 +61,7 @@ class ELBCertificate(object):
         self.elb_name = elb_name
         self.elb_port = elb_port
 
-    def get_expiration_date(self):
+    def get_current_certificate(self):
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.elb_name]
         )
@@ -76,7 +76,14 @@ class ELBCertificate(object):
         for page in paginator.paginate():
             for server_certificate in page["ServerCertificateMetadataList"]:
                 if server_certificate["Arn"] == certificate_id:
-                    return server_certificate["Expiration"].date()
+                    cert_name = server_certificate["ServerCertificateName"]
+                    response = self.iam_client.get_server_certificate(
+                        ServerCertificateName=cert_name,
+                    )
+                    return x509.load_pem_x509_certificate(
+                        response["ServerCertificate"]["CertificateBody"],
+                        default_backend(),
+                    )
 
     def update_certificate(self, logger, hosts, private_key, pem_certificate,
                            pem_certificate_chain):
@@ -323,13 +330,15 @@ def request_certificate(logger, acme_client, elb_name, authorizations, csr):
 def update_elb(logger, acme_client, force_issue, cert_request):
     logger.emit("updating-elb", elb_name=cert_request.cert_location.elb_name)
 
-    expiration_date = cert_request.cert_location.get_expiration_date()
+    current_cert = cert_request.cert_location.get_current_certificate()
     logger.emit(
         "updating-elb.certificate-expiration",
         elb_name=cert_request.cert_location.elb_name,
-        expiration_date=expiration_date
+        expiration_date=current_cert.not_valid_after
     )
-    days_until_expiration = expiration_date - datetime.date.today()
+    days_until_expiration = (
+        current_cert.not_valid_after - datetime.datetime.today()
+    )
     if (
         days_until_expiration > CERTIFICATE_EXPIRATION_THRESHOLD and
         not force_issue
