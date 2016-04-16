@@ -465,13 +465,6 @@ def update_certificates(persistent=False, force_issue=False):
     route53_client = session.client("route53")
     iam_client = session.client("iam")
 
-    # Structure: {
-    #     "domains": [
-    #         {"elb": {"name" "...", "port" 443}, hosts: ["..."]}
-    #     ],
-    #     "acme_account_key": "s3://bucket/object",
-    #     "acme_directory_url": "(optional)"
-    # }
     config = json.loads(os.environ["LETSENCRYPT_AWS_CONFIG"])
     domains = config["domains"]
     acme_directory_url = config.get(
