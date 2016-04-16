@@ -484,11 +484,18 @@ def update_certificates(persistent=False, force_issue=False):
 
     certificate_requests = []
     for domain in domains:
-        certificate_requests.append(CertificateRequest(
-            ELBCertificate(
+        if "elb" in domain:
+            cert_location = ELBCertificate(
                 elb_client, iam_client,
                 domain["elb"]["name"], int(domain["elb"].get("port", 443))
-            ),
+            )
+        else:
+            raise ValueError(
+                "Unknown certificate location: {!r}".format(domain)
+            )
+
+        certificate_requests.append(CertificateRequest(
+            cert_location,
             Route53ChallengeCompleter(route53_client),
             domain["hosts"],
             domain.get("key_type", "rsa"),
