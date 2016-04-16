@@ -54,12 +54,19 @@ class CertificateRequest(object):
         self.key_type = key_type
 
 
-def _expiration_date_for_iam_certificate(iam_client, certificate_id):
-    paginator = iam_client.get_paginator("list_server_certificates")
+def _get_iam_certificate(iam_client, certificate_id):
+    paginator = self.iam_client.get_paginator("list_server_certificates")
     for page in paginator.paginate():
         for server_certificate in page["ServerCertificateMetadataList"]:
             if server_certificate["Arn"] == certificate_id:
-                return server_certificate["Expiration"].date()
+                cert_name = server_certificate["ServerCertificateName"]
+                response = self.iam_client.get_server_certificate(
+                    ServerCertificateName=cert_name,
+                )
+                return x509.load_pem_x509_certificate(
+                    response["ServerCertificate"]["CertificateBody"],
+                    default_backend(),
+                )
 
 
 def _upload_iam_certificate(iam_client, hosts, private_key, pem_certificate,
@@ -89,7 +96,7 @@ class ELBCertificate(object):
         self.elb_name = elb_name
         self.elb_port = elb_port
 
-    def get_expiration_date(self):
+    def get_current_certificate(self):
         response = self.elb_client.describe_load_balancers(
             LoadBalancerNames=[self.elb_name]
         )
@@ -100,9 +107,7 @@ class ELBCertificate(object):
             if listener["Listener"]["LoadBalancerPort"] == self.elb_port
         ]
 
-        return _expiration_date_for_iam_certificate(
-            self.iam_client, certificate_id
-        )
+        return _get_iam_certificate(self.iam_client, certificate_id)
 
     def update_certificate(self, logger, hosts, private_key, pem_certificate,
                            pem_certificate_chain):
@@ -132,7 +137,7 @@ class CloudFrontCertificate(object):
         self.iam_client = iam_client
         self.distribution_id = distribution_id
 
-    def get_expiration_date(self):
+    def get_current_certificate(self):
         response = self.cloudfront_client.get_distribution_config(
             Id=self.distribution_id
         )
@@ -140,7 +145,7 @@ class CloudFrontCertificate(object):
         # If the cert is of a different type then we don't have code to check
         # for it, annoying.
         assert cert.get("IAMCertificateId")
-        return _expiration_date_for_iam_certificate(
+        return _get_iam_certificate(
             self.iam_client, cert["IAMCertificateId"]
         )
 
@@ -377,15 +382,23 @@ def request_certificate(logger, acme_client, elb_name, authorizations, csr):
 def update_elb(logger, acme_client, force_issue, cert_request):
     logger.emit("updating-elb", elb_name=cert_request.cert_location.elb_name)
 
-    expiration_date = cert_request.cert_location.get_expiration_date()
+    current_cert = cert_request.cert_location.get_current_certificate()
     logger.emit(
         "updating-elb.certificate-expiration",
         elb_name=cert_request.cert_location.elb_name,
-        expiration_date=expiration_date
+        expiration_date=current_cert.not_valid_after
     )
-    days_until_expiration = expiration_date - datetime.date.today()
+    days_until_expiration = (
+        current_cert.not_valid_after - datetime.datetime.today()
+    )
+    current_domains = current_cert.extensions.get_extension_for_class(
+        x509.SubjectAlternativeName
+    ).value.get_values_for_type(x509.DNSName)
     if (
         days_until_expiration > CERTIFICATE_EXPIRATION_THRESHOLD and
+        # If the set of hosts we want for our certificate changes, we update
+        # even if the current certificate isn't expired.
+        sorted(current_domains) == sorted(cert_request.hosts) and
         not force_issue
     ):
         return
