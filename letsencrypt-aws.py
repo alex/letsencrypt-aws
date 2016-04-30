@@ -131,7 +131,7 @@ class Route53ChallengeCompleter(object):
                 if (
                     domain.endswith(zone["Name"]) or
                     (domain + ".").endswith(zone["Name"])
-                ):
+                ) and not zone["Config"]["PrivateZone"]:
                     zones.append((zone["Name"], zone["Id"]))
 
         if not zones:
