@@ -1,7 +1,7 @@
 FROM python:2.7-slim
 
 # This can be bumped every time you need to force an apt refresh
-ENV LAST_UPDATE 3
+ENV LAST_UPDATE 4
 
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get update && apt-get install -y build-essential libffi-dev libssl-dev git
