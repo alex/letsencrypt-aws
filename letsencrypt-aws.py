@@ -422,7 +422,13 @@ def update_elbs(logger, acme_client, force_issue, certificate_requests):
 def setup_acme_client(s3_client, acme_directory_url, acme_account_key):
     uri = rfc3986.urlparse(acme_account_key)
     if uri.scheme == "file":
-        with open(uri.path) as f:
+        if uri.host is None:
+            path = uri.path
+        elif uri.path is None:
+            path = uri.host
+        else:
+            path = os.path.join(uri.host, uri.path)
+        with open(path) as f:
             key = f.read()
     elif uri.scheme == "s3":
         # uri.path includes a leading "/"
