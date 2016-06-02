@@ -334,7 +334,7 @@ def request_certificate(logger, acme_client, elb_name, authorizations, csr):
     return pem_certificate, pem_certificate_chain
 
 
-def update_elb(logger, acme_client, force_issue, cert_request):
+def update_cert(logger, acme_client, force_issue, cert_request):
     logger.emit("updating-elb", elb_name=cert_request.cert_location.elb_name)
 
     current_cert = cert_request.cert_location.get_current_certificate()
@@ -416,9 +416,9 @@ def update_elb(logger, acme_client, force_issue, cert_request):
             )
 
 
-def update_elbs(logger, acme_client, force_issue, certificate_requests):
+def update_certs(logger, acme_client, force_issue, certificate_requests):
     for cert_request in certificate_requests:
-        update_elb(
+        update_cert(
             logger,
             acme_client,
             force_issue,
@@ -519,7 +519,7 @@ def update_certificates(persistent=False, force_issue=False):
     if persistent:
         logger.emit("running", mode="persistent")
         while True:
-            update_elbs(
+            update_certs(
                 logger, acme_client,
                 force_issue, certificate_requests
             )
@@ -528,7 +528,7 @@ def update_certificates(persistent=False, force_issue=False):
             time.sleep(PERSISTENT_SLEEP_INTERVAL)
     else:
         logger.emit("running", mode="single")
-        update_elbs(
+        update_certs(
             logger, acme_client,
             force_issue, certificate_requests
         )
