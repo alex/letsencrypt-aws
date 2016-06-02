@@ -66,11 +66,18 @@ class ELBCertificate(object):
             LoadBalancerNames=[self.elb_name]
         )
         [description] = response["LoadBalancerDescriptions"]
-        [certificate_id] = [
-            listener["Listener"]["SSLCertificateId"]
+        [elb_listener] = [
+            listener["Listener"]
             for listener in description["ListenerDescriptions"]
             if listener["Listener"]["LoadBalancerPort"] == self.elb_port
         ]
+
+        if "SSLCertificateId" not in elb_listener:
+            raise ValueError(
+                "A certificate must already be configured for the ELB"
+            )
+
+        certificate_id = elb_listener["SSLCertificateId"]
 
         paginator = self.iam_client.get_paginator("list_server_certificates")
         for page in paginator.paginate():
