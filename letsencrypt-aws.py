@@ -44,6 +44,21 @@ class Logger(object):
         ))
 
 
+def _get_iam_certificate(iam_client, certificate_id):
+    paginator = iam_client.get_paginator("list_server_certificates")
+    for page in paginator.paginate():
+        for server_certificate in page["ServerCertificateMetadataList"]:
+            if server_certificate["Arn"] == certificate_id:
+                cert_name = server_certificate["ServerCertificateName"]
+                response = iam_client.get_server_certificate(
+                    ServerCertificateName=cert_name,
+                )
+                return x509.load_pem_x509_certificate(
+                    response["ServerCertificate"]["CertificateBody"],
+                    default_backend(),
+                )
+
+
 class CertificateRequest(object):
     def __init__(self, cert_location, dns_challenge_completer, hosts,
                  key_type):
@@ -77,20 +92,9 @@ class ELBCertificate(object):
                 "A certificate must already be configured for the ELB"
             )
 
-        certificate_id = elb_listener["SSLCertificateId"]
-
-        paginator = self.iam_client.get_paginator("list_server_certificates")
-        for page in paginator.paginate():
-            for server_certificate in page["ServerCertificateMetadataList"]:
-                if server_certificate["Arn"] == certificate_id:
-                    cert_name = server_certificate["ServerCertificateName"]
-                    response = self.iam_client.get_server_certificate(
-                        ServerCertificateName=cert_name,
-                    )
-                    return x509.load_pem_x509_certificate(
-                        response["ServerCertificate"]["CertificateBody"],
-                        default_backend(),
-                    )
+        return _get_iam_certificate(
+            self.iam_client, elb_listener["SSLCertificateId"]
+        )
 
     def update_certificate(self, logger, hosts, private_key, pem_certificate,
                            pem_certificate_chain):
