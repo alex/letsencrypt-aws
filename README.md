@@ -42,7 +42,7 @@ it (either on the local filesystem or in S3).
 
 You will also need to have your AWS credentials configured. You can use any of
 the [mechanisms documented by
-boto3](https://boto3.readthedocs.org/en/latest/guide/configuration.html), or
+boto3](https://boto3.readthedocs.io/en/latest/guide/configuration.html), or
 use IAM instance profiles (which are supported, but not mentioned by the
 `boto3` documentation). See below for which AWS permissions are required.
 
