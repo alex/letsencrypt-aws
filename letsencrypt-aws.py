@@ -35,7 +35,7 @@ class Logger(object):
 
     def emit(self, event, **data):
         formatted_data = " ".join(
-            "{}={!r}".format(k, v) for k, v in data.iteritems()
+            "{}={!r}".format(k, v) for k, v in data.items()
         )
         self._out.write("{} [{}] {}\n".format(
             datetime.datetime.utcnow().replace(microsecond=0),
