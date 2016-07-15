@@ -67,9 +67,10 @@ environment variable. This should be a JSON object with the following schema:
 ```
 
 The `acme_account_key` can either be located on the local filesystem or in S3.
-To specify a local file you provide `"file:///path/to/key.pem"` (on Windows use `"file://C:/path/to/key.pem"`),
-for S3 provide `"s3://bucket-nam/object-name"`. The key should be a PEM formatted
-RSA private key.
+To specify a local file you provide `"file:///path/to/key.pem"` (on Windows use
+`"file://C:/path/to/key.pem"`), for S3 provide
+`"s3://bucket-name/object-name"`. The key should be a PEM formatted RSA private
+key.
 
 Then you can simply run it: `python letsencrypt-aws.py update-certificates`.
 
