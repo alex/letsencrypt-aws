@@ -454,7 +454,7 @@ def setup_acme_client(s3_client, acme_directory_url, acme_account_key):
         )
 
     key = serialization.load_pem_private_key(
-        key, password=None, backend=default_backend()
+        key.encode("utf-8"), password=None, backend=default_backend()
     )
     return acme_client_for_private_key(acme_directory_url, key)
 
