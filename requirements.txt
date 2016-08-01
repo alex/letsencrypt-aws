@@ -1,5 +1,4 @@
-# Branch for https://github.com/letsencrypt/letsencrypt/pull/2061
--e git+https://github.com/wteiken/letsencrypt@add_dns01_challenge#subdirectory=acme&egg=acme[dns]
+-e git+https://github.com/certbot/certbot#subdirectory=acme&egg=acme[dns]
 boto3>=1.2.3
 click>=6.2
 cryptography>=1.1.2
