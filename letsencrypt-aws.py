@@ -331,7 +331,7 @@ def request_certificate(logger, acme_client, elb_name, authorizations, csr):
     pem_certificate = OpenSSL.crypto.dump_certificate(
         OpenSSL.crypto.FILETYPE_PEM, cert_response.body
     )
-    pem_certificate_chain = "\n".join(
+    pem_certificate_chain = b"\n".join(
         OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
         for cert in acme_client.fetch_chain(cert_response)
     )
