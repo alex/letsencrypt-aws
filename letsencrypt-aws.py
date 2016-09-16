@@ -54,7 +54,7 @@ def _get_iam_certificate(iam_client, certificate_id):
                     ServerCertificateName=cert_name,
                 )
                 return x509.load_pem_x509_certificate(
-                    response["ServerCertificate"]["CertificateBody"],
+                    response["ServerCertificate"]["CertificateBody"].encode(),
                     default_backend(),
                 )
 
