@@ -114,8 +114,8 @@ class ELBCertificate(object):
                 format=serialization.PrivateFormat.TraditionalOpenSSL,
                 encryption_algorithm=serialization.NoEncryption(),
             ),
-            CertificateBody=pem_certificate,
-            CertificateChain=pem_certificate_chain,
+            CertificateBody=pem_certificate.decode(),
+            CertificateChain=pem_certificate_chain.decode(),
         )
         new_cert_arn = response["ServerCertificateMetadata"]["Arn"]
 
