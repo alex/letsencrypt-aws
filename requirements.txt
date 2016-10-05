@@ -1,4 +1,4 @@
--e git+https://github.com/certbot/certbot#subdirectory=acme&egg=acme[dns]
+acme>=0.9
 boto3>=1.2.3
 click>=6.2
 cryptography>=1.1.2
