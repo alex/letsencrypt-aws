@@ -13,6 +13,7 @@ RUN python -m virtualenv .venv
 COPY requirements.txt ./
 RUN .venv/bin/pip install -r requirements.txt
 COPY letsencrypt-aws.py ./
+RUN chmod 644 letsencrypt-aws.py
 
 USER nobody
 
