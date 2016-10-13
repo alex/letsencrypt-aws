@@ -42,6 +42,7 @@ class Logger(object):
             event,
             formatted_data
         ))
+        self._out.flush()
 
 
 def _get_iam_certificate(iam_client, certificate_id):
