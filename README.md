@@ -1,5 +1,9 @@
 # letsencrypt-aws
 
+**_Note_:** `letsencrypt-aws` is not well maintained at this point. You may
+prefer to use other Let's Encrypt automation solutions, or [Amazon's
+Certificate Manager](https://aws.amazon.com/certificate-manager/).
+
 `letsencrypt-aws` is a program that can be run in the background which
 automatically provisions and updates certificates on your AWS infrastructure
 using the AWS APIs and Let's Encrypt.
